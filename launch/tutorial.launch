@@ -2,6 +2,10 @@
     <include file="$(find turtlebot_stage)/launch/turtlebot_in_stage.launch">
         <arg name="map_file" value="$(find cart)/stage/tutorial.yaml" />
         <arg name="world_file" value="$(find cart)/stage/tutorial.world" />
+        #<arg name="initial_pose_x" value="5.0" />
+        #<arg name="initial_pose_y" value="5.0" />
+        #<arg name="initial_pose_a" value="0.0" />
+        #<node name="rviz" pkg="rviz" type="rviz" args="$(find cart)/rviz/my_robot_navigation.rviz"/>
     </include>
 
 </launch>

@@ -20,6 +20,9 @@ class Cart:
             self.twist.angular.z = 1.0
             self.pub.publish(self.twist)
             self.rate.sleep()
+    def set_target_pos(self,pos):
+        self.pos.x = pos.x
+        self.pos.y = pos.y
 
 if __name__=='__main__':
     main()
