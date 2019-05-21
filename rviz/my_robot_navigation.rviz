@@ -10,7 +10,6 @@ Panels:
         - /Global Planning1/Planner1
         - /Odometry1/Shape1
         - /Path1
-        - /Path1/Status1
         - /Path1/Offset1
       Splitter Ratio: 0.5
     Tree Height: 815
@@ -623,8 +622,8 @@ Visualization Manager:
       Line Width: 0.100000001
       Name: Path
       Offset:
-        X: 0
-        Y: 0
+        X: 5
+        Y: 5
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None

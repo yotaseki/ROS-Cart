@@ -1,56 +1,52 @@
-import numpy as np
-from chainer.cuda import cupy as cp
+import pandas as pd
+import numpy
+from chainer.cuda import cupy
 
 class PathData:
     def __init__(self, gpu_idx=-1):
         if(gpu_idx >= 0):
-            self.xp = cp
+            self.xp = cupy
         else:
-            self.xp = np
+            self.xp = numpy
 
-    # 関数による経路生成
     def make_function_path(self, f,x):
         X = x
         Y = f(X)
-        path = self.xp.stack((Y,X),axis=1)
+        path = self.xp.stack((X,Y),axis=1)
         return path
 
-    # 長さと半径から曲率一定の経路を生成
     def make_arc_path(self, l,r):
         theta = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
         X = r * self.xp.cos(theta)
         Y = r * self.xp.sin(theta) + r
-        path = self.xp.stack((Y,X),axis=1)
+        path = self.xp.stack((X,Y),axis=1)
         return path
 
     def make_arc_path_2(self, l,alpha,s=1):
         if alpha==0:
             X = self.xp.linspace(0, l)
             Y = self.xp.zeros(len(X))
-            path = self.xp.stack((Y,X),axis=1)
+            path = self.xp.stack((X,Y),axis=1)
         else:
-            r = s/alpha # 曲率
+            r = s/alpha # curvature
             theta = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
             X = r * self.xp.cos(theta)
             Y = r * self.xp.sin(theta) + r
-            path = self.xp.stack((Y,X),axis=1)
+            path = self.xp.stack((X,Y),axis=1)
         return path
 
-    # 経路を回転
     def rotate_path(self, path, rad):
         theta = rad
         X = path[:,1]*self.xp.cos(theta) - path[:,0]*self.xp.sin(theta)
         Y = path[:,1]*self.xp.sin(theta) + path[:,0]*self.xp.cos(theta)
-        ret = self.xp.stack((Y,X),axis=1)
+        ret = self.xp.stack((X,Y),axis=1)
         return ret
 
-    # CSVから経路の読み取り
     def read_path_csv(self, filename):
         df = pd.read_csv(filename, header=None)
         path = self.xp.array(df.values,dtype=self.xp.float32)
         return path
 
-    # 経路からN点抜き出す
     def get_n_point_from_path(self, n,path,margin=5):
         path_data = self.xp.empty((1,2))
         idx = 0

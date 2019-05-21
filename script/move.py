@@ -7,8 +7,14 @@ import numpy as np
 from chainer.cuda import cupy as cp
 from chainer import Variable
 from chainer import initializers, serializers
+from data import PathData
 
 def main():
+    gpu_idx = -1
+    if(gpu_idx >= 0):
+        xp = cp
+    else:
+        xp = np
     # ROS
     roscart = ROSCart()
     rate = rospy.Rate(1); # 1sec
@@ -19,22 +25,22 @@ def main():
     # LOAD WEIGHT
     weight = sys.argv[1]
     serializers.load_npz(weight, model)
-    # READ PATH
-    points = xp.array([[0.0,1.0],[0.0,2.0],[0.0,3.0]])
-    x = xp.array([points.flatten()], dtype=np.float32)
+    # TEST PATH
+    # points = xp.array([[1.0,0.0],[2.0,0.0],[3.0,0.0]])
+    pdata = PathData(gpu_idx)
+    k = xp.pi / 6   # curvature
+    testpath = pdata.make_arc_path_2(3, k)
+    div_testpath = pdata.get_n_point_from_path_2(num_step, testpath)
+    x = xp.array([div_testpath.flatten()], dtype=np.float32)
     try:
         y = forward(model, x)
         params = y.data[0]
-        # roscart.set_path(points)
-        roscart.set_path(xp.array([[0.0,10.0],[10.0,10.0],[10.0,0.0],[0.0,0.0]]))
         for i in range(len(params)):
             v = params[i,0]
             w = params[i,1]
-            # roscart.move(v,w)
+            roscart.move(v,w)
+            roscart.set_path(testpath)
             rate.sleep()
-            # roscart.move(xp.array([[1.0,0.0], [1.0,0.0],[1.0,0.0]]))
-        # while not rospy.is_shutdown():
-        # rospy.spin()
     except rospy.ROSInterruptException:
         pass
     # sys.exit()
@@ -47,8 +53,8 @@ def forward(model, x):
 class ROSCart:
     def __init__(self):
         rospy.init_node('move', anonymous=True)
-        self.pub_twi = rospy.Publisher('/cmd_vel_mux/input/teleop',Twist,queue_size=10)
         self.pub_path = rospy.Publisher('/cart/path',Path,queue_size=10)
+        self.pub_twi = rospy.Publisher('/cmd_vel_mux/input/teleop',Twist,queue_size=10)
     def move(self, v, w):
         twist = Twist()
         twist.linear.x = v
@@ -73,9 +79,4 @@ class ROSCart:
         self.pub_path.publish(path)
 
 if __name__=='__main__':
-    gpu_idx = -1
-    if(gpu_idx >= 0):
-        xp = cp
-    else:
-        xp = np
     main()
