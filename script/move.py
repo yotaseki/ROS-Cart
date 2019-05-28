@@ -17,7 +17,7 @@ def main():
         xp = np
     # ROS
     roscart = ROSCart()
-    rate = rospy.Rate(1); # 1sec
+    rate = rospy.Rate(10); # 0.1sec
     # MODEL
     num_step = 3
     input_dim = num_step*2
@@ -28,16 +28,16 @@ def main():
     # TEST PATH
     # points = xp.array([[1.0,0.0],[2.0,0.0],[3.0,0.0]])
     pdata = PathData(gpu_idx)
-    k = xp.pi / 6   # curvature
+    k = 0 # xp.pi / 6   # curvature
     testpath = pdata.make_arc_path_2(3, k)
     div_testpath = pdata.get_n_point_from_path_2(num_step, testpath)
     x = xp.array([div_testpath.flatten()], dtype=np.float32)
     try:
-        y = forward(model, x)
-        params = y.data[0]
-        for i in range(len(params)):
-            v = params[i,0]
-            w = params[i,1]
+        while not rospy.is_shutdown():
+            y = forward(model, x)
+            params = y.data[0]
+            v = params[0,0]
+            w = params[0,1]
             roscart.move(v,w)
             roscart.set_path(testpath)
             rate.sleep()
