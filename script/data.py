@@ -46,7 +46,25 @@ class PathData:
         df = pd.read_csv(filename, header=None)
         path = self.xp.array(df.values,dtype=self.xp.float32)
         return path
+    
+    def write_path_csv(self, data, filename):
+        df = pd.DataFrame(data)
+        df.to_csv(filename,header=None,index=False)
 
+    def calc_distance(self,p1,p2):
+        D = self.xp.sqrt(self.xp.sum((p1-p2)**2))
+        return D
+
+    def get_evenly_spaced_points(self,data,space):
+        ret = self.xp.empty((1,2))
+        p1 = (0.0, 0.0);
+        for p2 in data:
+            D = self.calc_distance(p1,p2) 
+            if(D >= space):
+                ret = self.xp.vstack((ret,p2))
+                p1 = p2
+        return ret[1:len(ret)]
+    
     def get_n_point_from_path(self, n,path,margin=5):
         path_data = self.xp.empty((1,2))
         idx = 0
@@ -64,3 +82,4 @@ class PathData:
             i = int(i)
             path_data = self.xp.vstack((path_data,path[i]))
         return path_data[1:len(path_data)]
+    
