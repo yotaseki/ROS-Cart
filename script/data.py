@@ -55,19 +55,21 @@ class PathData:
         df = pd.DataFrame(data)
         df.to_csv(filename,header=None,index=False)
 
-    def calc_distance(self,p1,p2):
-        D = self.xp.sqrt(self.xp.sum((p1-p2)**2))
+    def calc_distance(self,p1,p2,ax=0):
+        D = self.xp.sqrt(self.xp.sum((p1-p2)**2),axis=ax)
         return D
 
     def get_evenly_spaced_points(self,data,space):
         ret = self.xp.empty((0,3))
+        idx_list = [];
         p1 = (0.0, 0.0, 0.0);
-        for p2 in data:
-            D = self.calc_distance(p1[0:1],p2[0:1]) 
+        for i in range(len(data)):
+            D = self.calc_distance(p1[i,0:1],p2[i,0:1]) 
             if(D >= space):
                 ret = self.xp.vstack((ret,p2))
+                idx_list.append(i)
                 p1 = p2
-        return ret
+        return ret, idx_list
     
     def get_n_point_from_path(self, n,path,margin=5):
         ret = self.xp.empty((0,3))
@@ -94,6 +96,10 @@ class PathData:
         rad = self.xp.append(rad,0.0)
         rad = self.xp.expand_dims(rad,axis=1)
         return rad
+
+    def get_nearly_point_idx(pathData,point):
+        dist = calc_distance(PathData[:,0:2],point,ax=1)
+        idx = self.xp.argmin(dist)
 
     def calc_radian(self,p1,p2):
         rad = self.xp.arctan2(p2[:,1]-p1[:,1], p2[:,0]-p1[:,0])
