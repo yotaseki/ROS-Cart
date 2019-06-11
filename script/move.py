@@ -91,8 +91,8 @@ class ROSCart:
             pose = PoseStamped()
             pose.header.frame_id = 'map'
             pose.header.stamp = rospy.Time.now()
-            pose.pose.position.x = # x + start_pose.position.x
-            pose.pose.position.y = # y + start_pose.position.y
+            pose.pose.position.x = x # + start_pose.position.x
+            pose.pose.position.y = y # + start_pose.position.y
             pose.pose.position.z = 0.0
             pose.pose.orientation.x = 0.0
             pose.pose.orientation.y = 0.0
