@@ -32,7 +32,7 @@ floorplan
 (
   name "tutorial"
   bitmap "tutorial.png"
-  size [ 10.0 10.0 1.0 ]
+  size [ 20.0 20.0 1.0 ]
   pose [  0.0  0.0 0.0 0.0 ]
 )
 
