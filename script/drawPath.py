@@ -32,8 +32,7 @@ def main():
     cv2.setMouseCallback('drawPath',mouse_callback)
     global drawing, m_x, m_y, m_e, m_flags
     drawing = False
-    pathData = np.empty((0,3),np.float32)
-    pos_d = np.array((0,0),np.uint8)
+    pathData = np.empty((0,2),np.float32)
     while(True):
         cv2.imshow('drawPath',img_drawn)
         k = cv2.waitKey(1) & 0xFF
@@ -41,18 +40,17 @@ def main():
             break;
         if drawing:
             cv2.circle(img_drawn,(m_x,m_y),3,(0,0,0),-1)
-            pos = np.array((m_x, m_y),np.uint8)
-            rad = 0.0
-            if len(pathData) > 0:
-                rad = getRadian(pos_d,pos)
-                print(data)
-            data = np.array((pos[0]/scale,pos[1]/scale,rad),np.float32)
+            data = np.array((m_x/scale,m_y/scale),np.float32)
+            print(data)
             pathData = np.vstack((pathData,data))
             drawing = False
-            pos_d = pos.copy()
     cv2.destroyAllWindows()
     pathData = pathData - pathData[0]
     pd = PathData()
+    rad = pd.get_radian(pathData)
+    print(pathData.shape)
+    print(rad.shape)
+    pathData = np.hstack((pathData,rad))
     pd.write_path_csv(pathData,'path_full.csv')
 if __name__=='__main__':
     main()

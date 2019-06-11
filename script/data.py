@@ -13,33 +13,37 @@ class PathData:
         X = x
         Y = f(X)
         path = self.xp.stack((X,Y),axis=1)
+        rad = self.get_radian(path)
+        path = self.xp.hstack(path,rad)
         return path
 
     def make_arc_path(self, l,r):
-        theta = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
-        X = r * self.xp.cos(theta)
-        Y = r * self.xp.sin(theta) + r
-        path = self.xp.stack((X,Y),axis=1)
+        rad = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
+        X = r * self.xp.cos(rad)
+        Y = r * self.xp.sin(rad) + r
+        path = self.xp.stack((X,Y,rad),axis=1)
         return path
 
     def make_arc_path_2(self, l,alpha,s=1):
         if alpha==0:
             X = self.xp.linspace(0, l)
             Y = self.xp.zeros(len(X))
-            path = self.xp.stack((X,Y),axis=1)
+            rad = self.xp.zeros(len(X))
+            path = self.xp.stack((X,Y,rad),axis=1)
         else:
             r = s/alpha # curvature
-            theta = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
-            X = r * self.xp.cos(theta)
-            Y = r * self.xp.sin(theta) + r
-            path = self.xp.stack((X,Y),axis=1)
+            rad = self.xp.linspace(-self.xp.pi/2, -self.xp.pi/2+l/r)
+            X = r * self.xp.cos(rad)
+            Y = r * self.xp.sin(rad) + r
+            path = self.xp.stack((X,Y,rad),axis=1)
         return path
 
-    def rotate_path(self, path, rad):
-        theta = rad
-        X = path[:,1]*self.xp.cos(theta) - path[:,0]*self.xp.sin(theta)
-        Y = path[:,1]*self.xp.sin(theta) + path[:,0]*self.xp.cos(theta)
-        ret = self.xp.stack((X,Y),axis=1)
+    def rotate_path(self, path, deg):
+        rad = self.xp.deg2rad(deg)
+        X = path[:,1]*self.xp.cos(rad) - path[:,0]*self.xp.sin(rad)
+        Y = path[:,1]*self.xp.sin(rad) + path[:,0]*self.xp.cos(rad)
+        R = path[:,2] + rad
+        ret = self.xp.stack((X,Y,R),axis=1)
         return ret
 
     def read_path_csv(self, filename):
@@ -56,30 +60,42 @@ class PathData:
         return D
 
     def get_evenly_spaced_points(self,data,space):
-        ret = self.xp.empty((1,2))
-        p1 = (0.0, 0.0);
+        ret = self.xp.empty((0,3))
+        p1 = (0.0, 0.0, 0.0);
         for p2 in data:
-            D = self.calc_distance(p1,p2) 
+            D = self.calc_distance(p1[0:1],p2[0:1]) 
             if(D >= space):
                 ret = self.xp.vstack((ret,p2))
                 p1 = p2
-        return ret[1:len(ret)]
+        return ret
     
     def get_n_point_from_path(self, n,path,margin=5):
-        path_data = self.xp.empty((1,2))
+        ret = self.xp.empty((0,3))
         idx = 0
         for i in range(n):
             idx = idx + self.xp.random.randint(margin,len(path)/3)
         if(idx > len(path)):
             idx = len(path)
-            path_data = self.xp.vstack((path_data,path[idx]))
-        return path_data[1:len(path_data)]
+            ret = self.xp.vstack((ret,path[idx]))
+        return ret
 
     def get_n_point_from_path_2(self, n,path):
-        path_data = self.xp.empty((1,2))
+        ret = self.xp.empty((0,3))
         idx = [(len(path)-1)/3, (len(path)-1)*2/3, len(path)-1]
         for i in idx:
             i = int(i)
-            path_data = self.xp.vstack((path_data,path[i]))
-        return path_data[1:len(path_data)]
+            ret = self.xp.vstack((ret,path[i]))
+        return ret
+
+    def get_radian(self,path):
+        pos = path[0:len(path)-1]
+        pos_d = path[1:len(path)]
+        rad = self.calc_radian(pos,pos_d)
+        rad = self.xp.append(rad,0.0)
+        rad = self.xp.expand_dims(rad,axis=1)
+        return rad
+
+    def calc_radian(self,p1,p2):
+        rad = self.xp.arctan2(p2[:,1]-p1[:,1], p2[:,0]-p1[:,0])
+        return rad
     
