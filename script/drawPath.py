@@ -22,7 +22,7 @@ def getRadian(p1,p2):
     return rad
 
 def main():
-    scale = 1000.0
+    scale = 10.0
     img_w = 500
     img_h = 500
     img = np.ones((img_w,img_h,3),np.uint8)
