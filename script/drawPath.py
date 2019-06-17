@@ -22,7 +22,7 @@ def getRadian(p1,p2):
     return rad
 
 def main():
-    scale = 100.0
+    scale = 1000.0
     img_w = 500
     img_h = 500
     img = np.ones((img_w,img_h,3),np.uint8)
@@ -51,6 +51,6 @@ def main():
     print(pathData.shape)
     print(rad.shape)
     pathData = np.hstack((pathData,rad))
-    pd.write_path_csv(pathData,'path_full.csv')
+    pd.write_path_csv(pathData,'path_draw.csv')
 if __name__=='__main__':
     main()
