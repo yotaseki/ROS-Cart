@@ -14,17 +14,23 @@ def quaternion_to_euler(quaternion):
     e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
     return Vector3(x=e[0], y=e[1], z=e[2])
 
+def translation(p, x, y):
+    pass
+
+def rotation(p, rad):
+    pass
+
 def global2local(path, pos):
     pos_x = pos[0]
     pos_y = pos[1]
-    pos_rad = pos[2]
+    pos_rad = - pos[2]
     X = path[:,0]
     Y = path[:,1]
-    R = path[:,2]
-    X = (X * np.cos(pos_rad) - Y * np.sin(pos_rad)) + pos_x
-    Y = (X * np.sin(pos_rad) + Y * np.cos(pos_rad)) + pos_y
-    R = R + pos_rad
-    ret = np.array((X,Y,R),np.float32)
+    X = (X * np.cos(pos_rad)) - (Y * np.sin(pos_rad)) - pos_x
+    Y = (X * np.sin(pos_rad)) + (Y * np.cos(pos_rad)) - pos_y
+    R = path[:,2] - pos_rad
+    ret = np.vstack((X,Y,R))
+    ret = np.transpose(ret)
     return ret
 
 def main():
@@ -35,7 +41,7 @@ def main():
         xp = np
     # ROS
     roscart = ROSCart()
-    rate = rospy.Rate(10); # 0.1sec
+    rate = rospy.Rate(100); # 0.01sec
     # MODEL
     num_step = 3
     input_dim = num_step*2
@@ -44,38 +50,50 @@ def main():
     weight = sys.argv[1]
     serializers.load_npz(weight, model)
     # TEST PATH
+    space = 100.0
     # points = xp.array([[1.0,0.0],[2.0,0.0],[3.0,0.0]])
     pdata = PathData(gpu_idx)
-    k = xp.pi / 18   # curvature
+    k =  xp.pi / 18   # curvature
     testpath = pdata.make_arc_path_2(10, k)
-    testpath_es, idx_list = pdata.get_evenly_spaced_points(testpath,1.0)
     near_idx = 0
     try:
         while not rospy.is_shutdown():
-            if(near_idx > len(testpath_es)-num_step):
-                print('finished')
-                break;
             cart_pose = quaternion_to_euler(roscart.selfpose.orientation)
             pos_rad = cart_pose.z
             cartpos = np.array((roscart.selfpose.position.x, roscart.selfpose.position.y, pos_rad),np.float32)
             #
             idx = pdata.get_nearly_point_idx(testpath,cartpos)
-            near_idx = pdata.get_next_path_idx(idx,idx_list)
-            input_path = testpath_es[near_idx:near_idx+num_step]
+            testpath_es, idx_list = pdata.get_evenly_spaced_points(testpath[idx::],space/1000.0)
+            if len(testpath_es) < num_step+1:
+                print('finished')
+                break;
+            input_path_global = testpath_es[1:num_step+1]
+            input_path_local = global2local(input_path_global,cartpos)
             print('')
-            print(input_path)
-            # input_path = global2local(input_path,cartpos)
+            # print('selfpos')
             # print(cartpos)
-            print(input_path)
+            # print('input_global')
+            # print(input_path_global[:,0:2])
+            print('input[x,y]')
+            print(input_path_local[:,0:2])
             #
-            x = xp.array([input_path[:,0:2].flatten()], dtype=np.float32)
+            x = xp.array([input_path_local[:,0:2].flatten()], dtype=np.float32)
             y = forward(model, x)
+            print('output[v,w]')
+            print(y.data[0])
             params = y.data[0]
             v = params[0,0]
             w = params[0,1]
+            '''
+            if v < 0:
+                v = 0.0
+            if w < -np.pi/2 or np.pi/2 < w:
+                w = max(min(w, np.pi/2),-np.pi/2)
+            '''
             roscart.move(v,w)
-            roscart.set_path_input(testpath_es[near_idx:near_idx+num_step,0:2])
             roscart.set_path_full(testpath[:,0:2])
+            path_plan = np.vstack((cartpos,input_path_global))
+            roscart.set_path_input(path_plan[:,0:2])
             rate.sleep()
     except rospy.ROSInterruptException:
         pass
@@ -102,7 +120,6 @@ class ROSCart:
         twist.angular.z = w
         self.pub_twi.publish(twist)
     def set_path_full(self, points):
-        start_pose = self.selfpose
         path = Path()
         path.header.frame_id = 'map'
         path.header.stamp = rospy.Time.now()
@@ -110,8 +127,8 @@ class ROSCart:
             pose = PoseStamped()
             pose.header.frame_id = 'map'
             pose.header.stamp = rospy.Time.now()
-            pose.pose.position.x = x # + start_pose.position.x
-            pose.pose.position.y = y # + start_pose.position.y
+            pose.pose.position.x = x
+            pose.pose.position.y = y
             pose.pose.position.z = 0.0
             pose.pose.orientation.x = 0.0
             pose.pose.orientation.y = 0.0
@@ -120,7 +137,6 @@ class ROSCart:
             path.poses.append(pose)
         self.pub_path.publish(path)
     def set_path_input(self, points):
-        start_pose = self.selfpose
         path = Path()
         path.header.frame_id = 'map'
         path.header.stamp = rospy.Time.now()
@@ -128,8 +144,8 @@ class ROSCart:
             pose = PoseStamped()
             pose.header.frame_id = 'map'
             pose.header.stamp = rospy.Time.now()
-            pose.pose.position.x = x + start_pose.position.x
-            pose.pose.position.y = y + start_pose.position.y
+            pose.pose.position.x = x
+            pose.pose.position.y = y
             pose.pose.position.z = 0.0
             pose.pose.orientation.x = 0.0
             pose.pose.orientation.y = 0.0
