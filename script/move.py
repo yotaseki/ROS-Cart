@@ -9,6 +9,7 @@ from chainer import Variable
 from chainer import initializers, serializers
 from data import PathData
 import tf
+import time
 
 def quaternion_to_euler(quaternion):
     e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
@@ -41,21 +42,22 @@ def main():
         xp = np
     # ROS
     roscart = ROSCart()
-    rate = rospy.Rate(100); # 0.01sec
+    rate = rospy.Rate(10); # 10Hz / 0.1sec
     # MODEL
-    num_step = 3
+    num_step = 9
     input_dim = num_step*2
     model = Generator(input_dim, num_step)
     # LOAD WEIGHT
     weight = sys.argv[1]
     serializers.load_npz(weight, model)
     # TEST PATH
-    space = 100.0
+    space = 100.0 / 1000.0
     # points = xp.array([[1.0,0.0],[2.0,0.0],[3.0,0.0]])
     pdata = PathData(gpu_idx)
     k =  xp.pi / 18   # curvature
     testpath = pdata.make_arc_path_2(10, k)
     near_idx = 0
+    t_start= time.time()
     try:
         while not rospy.is_shutdown():
             cart_pose = quaternion_to_euler(roscart.selfpose.orientation)
@@ -63,7 +65,7 @@ def main():
             cartpos = np.array((roscart.selfpose.position.x, roscart.selfpose.position.y, pos_rad),np.float32)
             #
             idx = pdata.get_nearly_point_idx(testpath,cartpos)
-            testpath_es, idx_list = pdata.get_evenly_spaced_points(testpath[idx::],space/1000.0)
+            testpath_es, idx_list = pdata.get_evenly_spaced_points(testpath[idx::],space)
             if len(testpath_es) < num_step+1:
                 print('finished')
                 break;
@@ -76,7 +78,6 @@ def main():
             # print(input_path_global[:,0:2])
             print('input[x,y]')
             print(input_path_local[:,0:2])
-            #
             x = xp.array([input_path_local[:,0:2].flatten()], dtype=np.float32)
             y = forward(model, x)
             print('output[v,w]')
@@ -95,6 +96,9 @@ def main():
             path_plan = np.vstack((cartpos,input_path_global))
             roscart.set_path_input(path_plan[:,0:2])
             rate.sleep()
+            t_elapsed = time.time() - t_start
+            t_start= time.time()
+            print('time:',t_elapsed,'[sec]')
     except rospy.ROSInterruptException:
         pass
     # sys.exit()
