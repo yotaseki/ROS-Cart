@@ -16,23 +16,28 @@ def quaternion_to_euler(quaternion):
     return Vector3(x=e[0], y=e[1], z=e[2])
 
 def main():
+    # Params
+    rate = 100 # [Hz]
+    point_interval = 100.0 # [mm]
     # ROS
     roscart = ROSCart()
-    rate = rospy.Rate(10); # 10Hz / 0.1sec
+    rate = rospy.Rate(rate); # 10Hz / 0.1sec
     # MODEL
-    num_step = 9
-    input_dim = num_step*2
-    model = Generator(input_dim, num_step)
+    num_step = 3
+    num_waypoint = num_step
+    model = Generator(num_waypoint, num_step)
     # LOAD WEIGHT
     weight = sys.argv[1]
     serializers.load_npz(weight, model)
     # TEST PATH
-    space = 100.0 / 1000.0
+    interval = point_interval / 1000.0
     # points = settings.xp.array([[1.0,0.0],[2.0,0.0],[3.0,0.0]])
     k =  settings.xp.pi / 18   # curvature
-    testpath = data.make_arc_path_2(10, k)
+    # testpath = data.make_arc_path_2(9, k)
+    testpath = data.read_path_csv("./pathData/path2019-07-16.csv")
+    # testpath = data.read_path_csv("./pathData/sample_path.csv")
+    testpath = testpath
     near_idx = 0
-    t_start= time.time()
     try:
         while not rospy.is_shutdown():
             cart_pose = quaternion_to_euler(roscart.selfpose.orientation)
@@ -40,7 +45,7 @@ def main():
             cartpos = settings.xp.array((roscart.selfpose.position.x, roscart.selfpose.position.y, pos_rad),settings.xp.float32)
             #
             idx = data.get_nearly_point_idx(testpath,cartpos)
-            testpath_es, idx_list = data.get_evenly_spaced_points(testpath[idx::],space)
+            testpath_es, idx_list = data.get_evenly_spaced_points(testpath[idx::],interval)
             if len(testpath_es) < num_step+1:
                 print('finished')
                 break;
@@ -54,7 +59,10 @@ def main():
             print('input[x,y]')
             print(input_path_local[:,0:2])
             x = settings.xp.array([input_path_local[:,0:2].flatten()], dtype=settings.xp.float32)
+            t_start= time.time()
             y = forward(model, x)
+            t_elapsed = time.time() - t_start
+            print('time:',t_elapsed,'[sec]')
             print('output[v,w]')
             print(y.data[0])
             params = y.data[0]
@@ -71,9 +79,6 @@ def main():
             path_plan = settings.xp.vstack((cartpos,input_path_global))
             roscart.set_path_input(path_plan[:,0:2])
             rate.sleep()
-            t_elapsed = time.time() - t_start
-            t_start= time.time()
-            print('time:',t_elapsed,'[sec]')
     except rospy.ROSInterruptException:
         pass
     # sys.exit()

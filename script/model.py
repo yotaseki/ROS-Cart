@@ -7,16 +7,17 @@ from chainer.cuda import cupy as cp
 import numpy as np
 
 class Generator(Chain):
-    def __init__(self, input_dimension, num_step):
-        self.input_dim = input_dimension
+    def __init__(self, point_num, num_step):
+        self.input_dim = point_num * 2
         self.num_step = num_step
+        self.output_dim = num_step * 2
         self.l1_dim = 15
         self.l2_dim = 8
         initializer = initializers.HeNormal()
         super(Generator, self).__init__(
             l1=L.Linear(self.input_dim, self.l1_dim, initialW=initializer),
             l2=L.Linear(self.l1_dim, self.l2_dim, initialW=initializer),
-            l3=L.Linear(self.l2_dim, self.num_step*2, initialW=initializer),
+            l3=L.Linear(self.l2_dim, self.output_dim, initialW=initializer),
         )
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
