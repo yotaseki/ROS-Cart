@@ -76,8 +76,8 @@ class Oplus(Function):
     def forward_gpu(self, inputs):
         t1, t2 = inputs
         #self.retain_inputs((0, 1))
-        cos1 = cp.cos(t1[:,2])
-        sin1 = cp.sin(t1[:,2])
+        cos1 = cp.cos(t1[:,2]+ t2[:,2])
+        sin1 = cp.sin(t1[:,2]+ t2[:,2])
         x = cos1 * t2[:,0] - sin1 * t2[:,1] + t1[:,0]
         y = sin1 * t2[:,0] + cos1 * t2[:,1] + t1[:,1]
         t = ( t1[:,2] + t2[:,2] + cp.pi) % (2 * cp.pi ) - cp.pi
@@ -89,13 +89,14 @@ class Oplus(Function):
     def backward_gpu(self, inputs, grad_outputs):
         #t1, t2 = self.retained_inputs()
         t1, t2 = inputs
-        in_len = len(inputs)
-        gw, = grad_outputs
-        #print('go')
+        gw_len = len(grad_outputs)
+        #print('in / out')
+        #print(inputs)
         #print(grad_outputs)
+        gw, = grad_outputs
         cos1 = cp.cos(t1[:,2])
         sin1 = cp.sin(t1[:,2])
-        dx1 = cp.zeros((in_len,3,3), dtype=gw.dtype)
+        dx1 = cp.zeros((gw_len,3,3), dtype=gw.dtype)
         dx1[:,0,0] = 1.
         dx1[:,1,1] = 1.
         dx1[:,2,2] = 1.
@@ -103,17 +104,25 @@ class Oplus(Function):
         dx1[:,1,2] = cos1 * t2[:,0] - sin1 *t2[:,1]
         #print('dx1')
         #print(dx1)
-        gw = gw.reshape(in_len,1,3)
+        gw = gw.reshape(gw_len,1,3)
         #print(gw.shape)
         #print(dx1.shape)
         d1 = cp.squeeze(cp.matmul(gw, dx1))
-        dx2 = cp.zeros((in_len,3,3), dtype=gw.dtype)
+        dx2 = cp.zeros((gw_len,3,3), dtype=gw.dtype)
         dx2[:,0,0] = cos1
         dx2[:,0,1] = -sin1
         dx2[:,1,0] = sin1
         dx2[:,1,1] = cos1
         dx2[:,2,2] = 1.
         d2 = cp.squeeze(cp.matmul(gw, dx2))
+        print(d1)
+        print(gw.shape)
+        print(dx1.shape)
+        print(d1.shape)
+        print(d2)
+        print(gw.shape)
+        print(dx2.shape)
+        print(d2.shape)
         return d1, d2
 
 # def oplus(x, y):
