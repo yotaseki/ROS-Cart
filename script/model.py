@@ -76,8 +76,8 @@ class Oplus(Function):
     def forward_gpu(self, inputs):
         t1, t2 = inputs
         #self.retain_inputs((0, 1))
-        cos1 = cp.cos(t1[:,2]+ t2[:,2])
-        sin1 = cp.sin(t1[:,2]+ t2[:,2])
+        cos1 = cp.cos(t1[:,2])
+        sin1 = cp.sin(t1[:,2])
         x = cos1 * t2[:,0] - sin1 * t2[:,1] + t1[:,0]
         y = sin1 * t2[:,0] + cos1 * t2[:,1] + t1[:,1]
         t = ( t1[:,2] + t2[:,2] + cp.pi) % (2 * cp.pi ) - cp.pi
@@ -115,14 +115,18 @@ class Oplus(Function):
         dx2[:,1,1] = cos1
         dx2[:,2,2] = 1.
         d2 = cp.squeeze(cp.matmul(gw, dx2))
-        print(d1)
-        print(gw.shape)
-        print(dx1.shape)
-        print(d1.shape)
-        print(d2)
-        print(gw.shape)
-        print(dx2.shape)
-        print(d2.shape)
+        if(gw_len == 1):
+            # squeeze() <- not support minibatch=1 
+            d1 = cp.array([d1],dtype=gw.dtype)
+            d2 = cp.array([d2],dtype=gw.dtype)
+        #print(d1)
+        #print(gw.shape)
+        #print(dx1.shape)
+        #print(d1.shape)
+        #print(d2)
+        #print(gw.shape)
+        #print(dx2.shape)
+        #print(d2.shape)
         return d1, d2
 
 # def oplus(x, y):

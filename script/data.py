@@ -28,7 +28,7 @@ def make_arc_path(l,r):
     path = settings.xp.stack((X,Y,rad),axis=1)
     return path
 
-def make_arc_path_2(l,alpha,s=0.01):
+def make_arc_path_2(l,alpha,s=0.1):
     if alpha==0:
         X = settings.xp.linspace(0, l)
         Y = settings.xp.zeros(len(X))
@@ -60,6 +60,8 @@ def write_path_csv(data, filename):
     df.to_csv(filename,header=None,index=False)
 
 def calc_distance(p1,p2,ax=0):
+    p1 = settings.xp.array(p1)
+    p2 = settings.xp.array(p2)
     D = settings.xp.sqrt(settings.xp.sum((p1-p2)**2,axis=ax))
     return D
 
