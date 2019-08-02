@@ -10,7 +10,7 @@ def get_radian(path):
     pos_d = path[1:len(path)]
     rad = calc_radian(pos,pos_d)
     rad = settings.xp.append(rad,0.0)
-    rad = settings.xp.esettings.xpand_dims(rad,axis=1)
+    rad = settings.xp.expand_dims(rad,axis=1)
     return rad
 
 def make_function_path(f,x):

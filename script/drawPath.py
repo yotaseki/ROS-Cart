@@ -2,7 +2,9 @@
 import cv2
 import pandas as pd
 import numpy as np
-from data import PathData
+import data
+import xp_settings as setting
+setting.set_gpu(-1)
 
 def mouse_callback(e,x,y,flags,param):
     global drawing, m_x, m_y, m_e, m_flags
@@ -40,17 +42,16 @@ def main():
             break;
         if drawing:
             cv2.circle(img_drawn,(m_x,m_y),3,(0,0,0),-1)
-            data = np.array((m_x/scale,m_y/scale),np.float32)
-            print(data)
-            pathData = np.vstack((pathData,data))
+            d = np.array((m_x/scale,m_y/scale),np.float32)
+            print(d)
+            pathData = np.vstack((pathData,d))
             drawing = False
     cv2.destroyAllWindows()
     pathData = pathData - pathData[0]
-    pd = PathData()
-    rad = pd.get_radian(pathData)
+    rad = data.get_radian(pathData)
     print(pathData.shape)
     print(rad.shape)
     pathData = np.hstack((pathData,rad))
-    pd.write_path_csv(pathData,'path_draw.csv')
+    data.write_path_csv(pathData,'path_draw.csv')
 if __name__=='__main__':
     main()

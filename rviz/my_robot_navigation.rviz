@@ -4,20 +4,22 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /Grid1
         - /Grid1/Offset1
         - /RobotModel1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /Map1
+        - /Map1/Position1
         - /Global Planning1/Planner1
         - /Odometry1/Shape1
         - /Path1
         - /Path1/Offset1
         - /Path2
         - /Path2/Offset1
+        - /myMap1
       Splitter Ratio: 0.5
-    Tree Height: 815
+    Tree Height: 843
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -44,7 +46,7 @@ Visualization Manager:
     - Alpha: 0.5
       Cell Size: 1
       Class: rviz/Grid
-      Color: 160; 160; 164
+      Color: 28; 28; 29
       Enabled: true
       Line Style:
         Line Width: 0.0299999993
@@ -52,8 +54,8 @@ Visualization Manager:
       Name: Grid
       Normal Cell Count: 0
       Offset:
-        X: 10
-        Y: 10
+        X: 0
+        Y: 0
         Z: 0
       Plane: XY
       Plane Cell Count: 20
@@ -379,12 +381,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map
       Topic: /map
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Class: rviz/Group
       Displays:
         - Alpha: 0.699999988
@@ -627,8 +629,8 @@ Visualization Manager:
       Line Width: 0.100000001
       Name: Path
       Offset:
-        X: 10
-        Y: 10
+        X: 0
+        Y: 0
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
@@ -650,8 +652,8 @@ Visualization Manager:
       Line Width: 0.0500000007
       Name: Path
       Offset:
-        X: 10
-        Y: 10
+        X: 0
+        Y: 0
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
@@ -661,12 +663,22 @@ Visualization Manager:
       Topic: /cart/path_input
       Unreliable: false
       Value: true
+    - Alpha: 0.699999988
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: myMap
+      Topic: /mymap
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 165; 165; 165
     Default Light: true
-    Fixed Frame: map
-    Frame Rate: 30
+    Fixed Frame: odom
+    Frame Rate: 60
   Name: root
   Tools:
     - Class: rviz/MoveCamera
@@ -682,7 +694,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 25.9869823
+      Distance: 19.4892616
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -700,15 +712,15 @@ Visualization Manager:
       Pitch: 1.56979632
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 4.71320772
+      Yaw: 4.71320295
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1028
+  Height: 1056
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001e1000003befc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000028000003be000000d700ffffff000000010000010b0000038bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000320000038b000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000030000fffffffb0000000800540069006d0065010000000000000450000000000000000000000558000003be00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001e1000003dafc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000028000003da000000d700ffffff000000010000010b0000038bfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000320000038b000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a00000030000fffffffb0000000800540069006d0065010000000000000450000000000000000000000558000003da00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
