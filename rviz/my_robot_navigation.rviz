@@ -12,6 +12,7 @@ Panels:
         - /TF1/Tree1
         - /Map1/Position1
         - /Global Planning1/Planner1
+        - /Odometry1
         - /Odometry1/Shape1
         - /Path1
         - /Path1/Offset1
@@ -593,7 +594,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 50
+      Keep: 200
       Name: Odometry
       Position Tolerance: 0.100000001
       Shape:
@@ -694,7 +695,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 19.4892616
+      Distance: 12.0282459
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -712,7 +713,7 @@ Visualization Manager:
       Pitch: 1.56979632
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 4.71320295
+      Yaw: 4.70820189
     Saved: ~
 Window Geometry:
   Displays:

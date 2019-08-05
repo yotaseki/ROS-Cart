@@ -38,8 +38,8 @@ def main():
                 y = forward(model, x)
                 t_elapsed = time.time() - t_start
                 print('output[v,w]')
-                print('time:',t_elapsed,'[sec]')
                 print(y.data[0])
+                print('time:',t_elapsed,'[sec]')
                 params = y.data[0]
                 v = params[0,0]
                 w = params[0,1]
@@ -76,15 +76,16 @@ class ROSCart:
     def nextpath(self):
         return self.next
     def set_next_path(self, path):
-        poses = settings.xp.empty((0,2),dtype=settings.xp.float32)
+        poses = settings.xp.empty((0,3),dtype=settings.xp.float32)
         for i in range(len(path.poses)):
             pos = path.poses[i].pose.position
-            pose = settings.xp.array([[pos.x,pos.y]],dtype=settings.xp.float32)
+            pos_ori = quaternion_to_euler(path.poses[i].pose.orientation)
+            pose = settings.xp.array([[pos.x,pos.y,pos_ori.z]],dtype=settings.xp.float32)
             poses = settings.xp.vstack((poses, pose))
-        cart_pose = quaternion_to_euler(self.selfpose.orientation)
-        pos_rad = cart_pose.z
-        cartpos = settings.xp.array((self.selfpose.position.x, self.selfpose.position.y, pos_rad),settings.xp.float32)
-        self.next = coordinate.globalpos_to_localpos(poses[1:],self.selfpose)
+        cart_ori = quaternion_to_euler(self.selfpose.orientation)
+        cartpos = settings.xp.array((self.selfpose.position.x, self.selfpose.position.y, cart_ori.z),settings.xp.float32)
+        path_local = coordinate.globalpos_to_localpos(poses[1:],cartpos)
+        self.next = path_local[:,0:2]
         self.ready = True
     def get_position(self, odom):
         self.selfpose = odom.pose.pose
