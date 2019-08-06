@@ -28,7 +28,7 @@ def make_arc_path(l,r):
     path = settings.xp.stack((X,Y,rad),axis=1)
     return path
 
-def make_arc_path_2(l,alpha,s=0.1):
+def make_arc_path_2(l,alpha,s=1):
     if alpha==0:
         X = settings.xp.linspace(0, l)
         Y = settings.xp.zeros(len(X))
