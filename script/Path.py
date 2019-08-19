@@ -15,7 +15,7 @@ def main():
     # Params
     rate = 100 # [Hz]
     point_interval = 100.0 # [mm]
-    num_step = 3
+    num_step = 10
     # ROS
     rcp = ROSCartPath()
     rate = rospy.Rate(rate); # 10Hz / 0.1sec
