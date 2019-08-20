@@ -13,11 +13,11 @@ import time
 
 def main():
     # Params
-    rate = 100 # [Hz]
+    hz = 10 # [Hz]
     point_interval = 100.0 # [mm]
     # ROS
     roscart = ROSCart()
-    rate = rospy.Rate(rate);
+    rate = rospy.Rate(hz);
     # MODEL
     num_step = 10
     num_waypoint = num_step
@@ -42,8 +42,8 @@ def main():
                 print(y.data[0])
                 print('time:',t_elapsed,'[sec]')
                 params = y.data[0]
-                v = params[0,0]
-                w = params[0,1]
+                v = params[0,0] * hz
+                w = params[0,1] * hz
                 roscart.command_vel(v,w)
             rate.sleep()
     except rospy.ROSInterruptException:

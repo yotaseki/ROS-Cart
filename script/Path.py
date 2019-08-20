@@ -13,12 +13,12 @@ import time
 
 def main():
     # Params
-    rate = 100 # [Hz]
-    point_interval = 100.0 # [mm]
+    rate = 10 # [Hz]
+    point_interval = 50.0 # [mm]
     num_step = 10
     # ROS
     rcp = ROSCartPath()
-    rate = rospy.Rate(rate); # 10Hz / 0.1sec
+    rate = rospy.Rate(rate);
     # TEST PATH
     interval = point_interval / 1000.0
     testpath = data.read_path_csv("./pathData/sample_path.csv")
@@ -36,7 +36,7 @@ def main():
                 continue;
             input_path_global = testpath_es[1:num_step+1]
             input_path_local = coordinate.globalpos_to_localpos(input_path_global,cartpos)
-            print(input_path_local)
+            # print(input_path_local)
             rcp.set_path_full(testpath[:,0:2])
             path_plan = settings.xp.vstack((cartpos,input_path_global))
             rcp.set_path_input(path_plan[:,0:2])
