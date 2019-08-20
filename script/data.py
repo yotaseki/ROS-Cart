@@ -73,8 +73,8 @@ def get_evenly_spaced_points(data,space):
         p2 = data[i]
         D = calc_distance(p1[0:2],p2[0:2]) 
         if(D >= space):
-            ret = settings.xp.vstack((ret,p2))
-            idx_list.append(i)
+            ret = settings.xp.vstack((ret,data[i-1]))
+            idx_list.append(i-1)
             p1 = p2
     return ret, idx_list
 
