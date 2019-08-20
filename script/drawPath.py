@@ -38,7 +38,7 @@ def main():
     while(True):
         cv2.imshow('drawPath',img_drawn)
         k = cv2.waitKey(1) & 0xFF
-        if k==27:
+        if k==ord('q'):
             break;
         if drawing:
             cv2.circle(img_drawn,(m_x,m_y),3,(0,0,0),-1)
