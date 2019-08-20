@@ -14,7 +14,6 @@ import time
 def main():
     # Params
     hz = 10 # [Hz]
-    point_interval = 100.0 # [mm]
     # ROS
     roscart = ROSCart()
     rate = rospy.Rate(hz);
@@ -33,6 +32,8 @@ def main():
                 print('')
                 print('input[x,y]')
                 print(input_path[:,0:2])
+                if(len(input_path) == 0):
+                    break;
                 x = xp.array([input_path[:,0:2].flatten()], dtype=xp.float32)
                 t_start= time.time()
                 x = Variable(x)
@@ -42,7 +43,7 @@ def main():
                 print(y.data[0])
                 print('time:',t_elapsed,'[sec]')
                 params = y.data[0]
-                v = params[0,0] * hz
+                v = params[0,0] * hz 
                 w = params[0,1] * hz
                 roscart.command_vel(v,w)
             rate.sleep()

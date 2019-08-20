@@ -21,7 +21,7 @@ def main():
     rate = rospy.Rate(rate);
     # TEST PATH
     interval = point_interval / 1000.0
-    testpath = data.read_path_csv("./pathData/sample_path.csv")
+    testpath = data.read_path_csv(sys.argv[1])
     testpath = testpath
     near_idx = 0
     try:
@@ -33,7 +33,8 @@ def main():
             idx = data.get_nearly_point_idx(testpath,cartpos)
             testpath_es, idx_list = data.get_evenly_spaced_points(testpath[idx::],interval)
             if len(testpath_es) < num_step+1:
-                continue;
+                rcp.set_path_input([])
+                break;
             input_path_global = testpath_es[1:num_step+1]
             input_path_local = coordinate.globalpos_to_localpos(input_path_global,cartpos)
             # print(input_path_local)

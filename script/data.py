@@ -1,6 +1,25 @@
 import pandas as pd
 import xp_settings as settings
 
+def set_params(params):
+    global DATA_SIZE
+    global NUM_WAYPOINTS
+    global NUM_STEP
+    global HZ
+    global MAX_TRANS_VEL
+    global MAX_ROTATE_VEL
+    global M_PER_STEP
+    global RAD_PER_STEP
+    DATA_SIZE, NUM_WAYPOINTS, NUM_STEP, HZ, MAX_TRANS_VEL, MAX_ROTATE_VEL, M_PER_STEP, RAD_PER_STEP = params
+    print('DATA_SIZE     :',DATA_SIZE     )
+    print('NUM_WAYPOINTS :',NUM_WAYPOINTS )
+    print('NUM_STEP      :',NUM_STEP      )
+    print('HZ            :',HZ            )
+    print('MAX_TRANS_VEL :',MAX_TRANS_VEL )
+    print('MAX_ROTATE_VEL:',MAX_ROTATE_VEL)
+    print('M_PER_STEP    :',M_PER_STEP    )
+    print('RAD_PER_STEP  :',RAD_PER_STEP  )
+
 def calc_radian(p1,p2):
     rad = settings.xp.arctan2(p2[:,1]-p1[:,1], p2[:,0]-p1[:,0])
     return rad
