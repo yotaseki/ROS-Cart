@@ -24,9 +24,9 @@ def getRadian(p1,p2):
     return rad
 
 def main():
-    scale = 100.0
-    img_w = 500
-    img_h = 500
+    scale = 200.0
+    img_w = 1000
+    img_h = 1000
     img = np.ones((img_w,img_h,3),np.uint8)
     img = img * 255
     img_drawn = img.copy()

@@ -94,7 +94,7 @@ def get_evenly_spaced_points(data,space):
         if(D >= space):
             ret = settings.xp.vstack((ret,data[i-1]))
             idx_list.append(i-1)
-            p1 = p2
+            p1 = data[i-1]
     return ret, idx_list
 
 def get_n_point_from_path(n,path,margin=5):
