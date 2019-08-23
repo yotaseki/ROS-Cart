@@ -88,10 +88,23 @@ def get_evenly_spaced_points(data,space):
     ret = settings.xp.empty((0,3))
     idx_list = [];
     p1 = (0.0, 0.0, 0.0);
-    for i in range(len(data)):
+    for i in range(1,len(data)):
         p2 = data[i]
         D = calc_distance(p1[0:2],p2[0:2]) 
         if(D >= space):
+            ret = settings.xp.vstack((ret,data[i-1]))
+            idx_list.append(i-1)
+            p1 = data[i-1]
+    return ret, idx_list
+
+def get_random_spaced_points(data, max_v):
+    ret = settings.xp.empty((0,3))
+    idx_list = [];
+    p1 = (0.0, 0.0, 0.0);
+    for i in range(1,len(data)):
+        p2 = data[i]
+        D = calc_distance(p1[0:2],p2[0:2]) 
+        if(D >= (settings.xp.random.rand() * max_v) ):
             ret = settings.xp.vstack((ret,data[i-1]))
             idx_list.append(i-1)
             p1 = data[i-1]
