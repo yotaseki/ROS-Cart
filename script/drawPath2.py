@@ -43,11 +43,14 @@ def main():
         if drawing:
             cv2.circle(img_drawn,(m_x,m_y),3,(0,0,0),-1)
             d = np.array((m_x,-m_y),np.float32)
-            d = d * scale
+            d = d / scale
             if(len(pathData) == 0):
                 pathData = np.vstack((pathData,d))
             else:
-                d_lin = np.linspace(pathData[-1],d)
+                dx, dy = pathData[-1]
+                d_lin_x = np.linspace(dx,d[0])
+                d_lin_y = np.linspace(dy,d[1])
+                d_lin = np.vstack((d_lin_x,d_lin_y)).transpose()
                 pathData = np.vstack((pathData, d_lin))
             drawing = False
     cv2.destroyAllWindows()
