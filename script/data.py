@@ -49,13 +49,13 @@ def make_arc_path(l,r):
 
 def make_arc_path_2(l,alpha,s=1):
     if alpha==0:
-        X = settings.xp.linspace(0, l)
+        X = settings.xp.linspace(0, l, 1000)
         Y = settings.xp.zeros(len(X))
         rad = settings.xp.zeros(len(X))
         path = settings.xp.stack((X,Y,rad),axis=1)
     else:
         r = s/alpha # curvature
-        rad = settings.xp.linspace(-settings.xp.pi/2, -settings.xp.pi/2+l/r)
+        rad = settings.xp.linspace(-settings.xp.pi/2, -settings.xp.pi/2+l/r, 1000)
         X = r * settings.xp.cos(rad)
         Y = r * settings.xp.sin(rad) + r
         path = settings.xp.stack((X,Y,rad),axis=1)
