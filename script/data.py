@@ -153,3 +153,18 @@ def get_waypoints(close_idx, data,num_step,space):
         p1 = data[idx]
     return ret
 
+def generate_arc_path(num_step,rad_per_step,m_per_step):
+    l = num_step*m_per_step
+    if(rad_per_step == 0):
+        X = settings.xp.arange(.0, l, m_per_step) + m_per_step
+        Y = settings.xp.zeros(len(X))
+        TH = settings.xp.zeros(len(X))
+        path = settings.xp.stack((X,Y,TH),axis=1)
+    else:
+        r = m_per_step / rad_per_step
+        TH = settings.xp.arange(-settings.xp.pi/2, -settings.xp.pi/2+rad_per_step*num_step, rad_per_step) + rad_per_step
+        X = r * settings.xp.cos(TH)
+        Y = r * settings.xp.sin(TH) + r
+        path = settings.xp.stack((X,Y,TH),axis=1)
+    return path
+
