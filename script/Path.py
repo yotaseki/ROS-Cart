@@ -23,7 +23,6 @@ def main():
     interval = point_interval / 1000.0
     testpath = data.read_path_csv(sys.argv[1])
     testpath = testpath
-    near_idx = 0
     try:
         while not rospy.is_shutdown():
             cart_pose = quaternion_to_euler(rcp.selfpose.orientation)
@@ -31,14 +30,14 @@ def main():
             cartpos = settings.xp.array((rcp.selfpose.position.x, rcp.selfpose.position.y, pos_rad),settings.xp.float32)
             #
             idx = data.get_nearly_point_idx(testpath,cartpos)
-            testpath_es, idx_list = data.get_evenly_spaced_points(testpath[idx::],interval)
-            if len(testpath_es) < num_step+1:
+            input_path_global = data.get_waypoints(idx,testpath,num_step,interval)
+            if len(input_path_global) < num_step:
                 rcp.set_path_input([])
                 break;
-            input_path_global = testpath_es[1:num_step+1]
             input_path_local = coordinate.globalpos_to_localpos(input_path_global,cartpos)
-            # print(input_path_local)
-            rcp.set_path_full(testpath[:,0:2])
+            #print(input_path_local)
+
+            rcp.set_path_full(testpath[::len(testpath)/100,0:2])
             path_plan = settings.xp.vstack((cartpos,input_path_global))
             rcp.set_path_input(path_plan[:,0:2])
             rate.sleep()

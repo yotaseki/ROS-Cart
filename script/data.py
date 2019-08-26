@@ -79,9 +79,7 @@ def write_path_csv(data, filename):
     df.to_csv(filename,header=None,index=False)
 
 def calc_distance(p1,p2,ax=0):
-    p1 = settings.xp.array(p1)
-    p2 = settings.xp.array(p2)
-    D = settings.xp.sqrt(settings.xp.sum((p1-p2)**2,axis=ax))
+    D = settings.xp.sqrt(settings.xp.sum((p2-p1)**2,axis=ax))
     return D
 
 def get_evenly_spaced_points(data,space):
@@ -129,7 +127,7 @@ def get_n_point_from_path_2(n,path):
     return ret
 
 def get_nearly_point_idx(pathData,point):
-    dist = calc_distance(pathData[:,0:2],point[0:2],ax=1)
+    dist = calc_distance(point[0:2],pathData[:,0:2],ax=1)
     idx = settings.xp.argmin(dist)
     return idx
 
@@ -141,4 +139,17 @@ def get_next_path_idx(idx,idx_list):
         next_idx = next_idx + 1
     return next_idx
     
+def get_waypoints(close_idx, data,num_step,space):
+    ret = settings.xp.empty((0,3))
+    idx = close_idx
+    p1 = data[idx];
+    for n in range(num_step):
+        D = calc_distance(p1[0:2],data[idx:,0:2],ax=1)
+        D = settings.xp.abs(D - space)
+        idx = idx + settings.xp.argmin(D)
+        if(settings.xp.argmin(D) == 0):
+            break
+        ret = settings.xp.vstack((ret,data[idx]))
+        p1 = data[idx]
+    return ret
 
