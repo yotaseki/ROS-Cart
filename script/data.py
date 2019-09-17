@@ -79,8 +79,23 @@ def write_path_csv(data, filename):
     df.to_csv(filename,header=None,index=False)
 
 def calc_distance(p1,p2,ax=0):
+    p1 = settings.xp.array(p1,dtype=settings.xp.float32)
+    p2 = settings.xp.array(p2,dtype=settings.xp.float32)
     D = settings.xp.sqrt(settings.xp.sum((p2-p1)**2,axis=ax))
     return D
+
+def old_get_evenly_spaced_points(data,space):
+    ret = settings.xp.empty((0,3))
+    idx_list = [];
+    p1 = (0.0, 0.0, 0.0);
+    for i in range(1,len(data)):
+        p2 = data[i]
+        D = calc_distance(p1[0:2],p2[0:2]) 
+        if(D >= space):
+            ret = settings.xp.vstack((ret,p2))
+            idx_list.append(i)
+            p1 = p2
+    return ret, idx_list
 
 def get_evenly_spaced_points(data,space):
     ret = settings.xp.empty((0,3))
@@ -154,6 +169,8 @@ def get_waypoints(close_idx, data,num_step,space):
     return ret
 
 def generate_arc_path(num_step,rad_per_step,m_per_step):
+    digit = 10 ** 5
+    rad_per_step = float(int(rad_per_step * digit) / digit)
     if(rad_per_step == 0):
         X = settings.xp.linspace(.0, m_per_step*num_step, num_step,endpoint=False) + m_per_step
         Y = settings.xp.zeros(len(X))
