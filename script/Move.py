@@ -33,7 +33,7 @@ def main():
                 print('input[x,y]')
                 print(input_path[:,0:2])
                 if(len(input_path) == 0):
-                    break;
+                    break
                 x = xp.array([input_path[:,0:2].flatten()], dtype=xp.float32)
                 t_start= time.time()
                 x = Variable(x)
@@ -45,6 +45,8 @@ def main():
                 params = y.data[0]
                 v = params[0,0] * hz 
                 w = params[0,1] * hz
+                #if(xp.abs(v) > 0.5 or xp.abs(w) > xp.pi):
+                #    break
                 roscart.command_vel(v,w)
             rate.sleep()
     except rospy.ROSInterruptException:
