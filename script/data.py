@@ -61,10 +61,9 @@ def make_arc_path_2(l,alpha,s=1):
         path = settings.xp.stack((X,Y,rad),axis=1)
     return path
 
-def rotate_path(path, deg):
-    rad = settings.xp.deg2rad(deg)
-    X = path[:,1]*settings.xp.cos(rad) - path[:,0]*settings.xp.sin(rad)
-    Y = path[:,1]*settings.xp.sin(rad) + path[:,0]*settings.xp.cos(rad)
+def rotate_path(path, rad):
+    X = path[:,1]*settings.xp.sin(rad) + path[:,0]*settings.xp.cos(rad)
+    Y = path[:,1]*settings.xp.cos(rad) - path[:,0]*settings.xp.sin(rad)
     R = path[:,2] + rad
     ret = settings.xp.stack((X,Y,R),axis=1)
     return ret
