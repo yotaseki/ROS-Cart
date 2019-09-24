@@ -24,7 +24,7 @@ def getRadian(p1,p2):
     return rad
 
 def main():
-    scale = 200.0
+    scale = 100.0 
     img_w = 1000
     img_h = 1000
     img = np.ones((img_w,img_h,3),np.uint8)
@@ -48,8 +48,8 @@ def main():
                 pathData = np.vstack((pathData,d))
             else:
                 dx, dy = pathData[-1]
-                d_lin_x = np.linspace(dx,d[0])
-                d_lin_y = np.linspace(dy,d[1])
+                d_lin_x = np.linspace(dx,d[0],int(scale))
+                d_lin_y = np.linspace(dy,d[1],int(scale))
                 d_lin = np.vstack((d_lin_x,d_lin_y)).transpose()
                 pathData = np.vstack((pathData, d_lin))
             drawing = False

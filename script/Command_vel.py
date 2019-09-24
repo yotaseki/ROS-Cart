@@ -13,10 +13,11 @@ import time
 
 def main():
     # Params
-    hz = 100
+    hz = 10
+    max_vel = 0.3
     num_waypoint = 10
     num_step = num_waypoint
-    waypoint_interval = 0.05
+    waypoint_interval = max_vel / hz
     # ROS Settings
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
@@ -27,12 +28,20 @@ def main():
     weight = sys.argv[2]
     model = Generator(num_waypoint, num_step)
     serializers.load_npz(weight, model)
+    t_navi = time.time()
+    t_com = time.time()
+    t_all = time.time()
     try:
         while not rospy.is_shutdown():
+            t_all = time.time()
             if(navigator.ready):
+                t_navi= time.time()
                 x = navigator.step()
+                t_navi= time.time() - t_navi
                 if len(x) == num_step:
-                    print('')
+                    t_com = time.time()
+                    print('/odom')
+                    print(navigator.selfpose.position)
                     print('input[x,y]')
                     print(x[:,0:2])
                     x = xp.array([x[:,0:2].flatten()], dtype=xp.float32)
@@ -41,18 +50,25 @@ def main():
                     print('output[v,w]')
                     print(y.data[0])
                     params = y.data[0]
-                    v = params[0,0] * 10 # * 0.5
-                    w = params[0,1] * 10 # * 0.5
-                    #if(xp.abs(v) > 0.5 or xp.abs(w) > xp.pi):
-                    #    break
+                    v = params[1,0] * 10 # * 0.5
+                    w = params[1,1] * 10 # * 0.5
                     controller.command_vel(v,w)
+                    t_com = time.time() - t_com
+                    '''
+                    if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*2:
+                        print('failed...')
+                        break
+                    '''
                 else:
                     print('finished')
                     break
+            t_all = time.time() - t_all
+            print('processing time: ',t_all,'[sec]')
+            print('|- Navigator time: ',t_navi,'[sec]')
+            print('|- Controller time: ',t_com,'[sec]')
             rate.sleep()
     except rospy.ROSInterruptException:
-        pass
-    # sys.exit()
+        sys.exit()
 
 class Controller:
     def __init__(self):
@@ -68,17 +84,20 @@ class Navigator:
         # self.pose_offset_x = 0.0
         # self.pose_offset_y = 0.0
         rospy.Subscriber('/odom',Odometry,self.update_selfpose)
-        self.pub_path = rospy.Publisher('/cart/path',Path,queue_size=1)
-        self.pub_input = rospy.Publisher('/cart/input',Path,queue_size=1)
+        self.pub_path = rospy.Publisher('/cart/path',Path,queue_size=5)
+        self.pub_input = rospy.Publisher('/cart/input',Path,queue_size=5)
         self.selfpose = PoseStamped().pose
         self.num_waypoint = num_waypoint
         self.waypoint_interval = waypoint_interval
         self.path = []
+        self.path_nav_msg = None
         self.ready = False
 
     def read_path_csv(self, filename, scale=1.0):
         self.path = data.read_path_csv(filename)
         self.path = self.path * scale
+        disp_interbal = int(len(self.path)/100)
+        self.path_nav_msg = self.xparray_to_nav_msgs(self.path[::disp_interbal,0:2])
 
     def step(self):
         pose = self.quaternion_to_euler(self.selfpose.orientation)
@@ -86,28 +105,35 @@ class Navigator:
         y = self.selfpose.position.y
         th = pose.z
         state = xp.array((x,y,th),xp.float32)
+        t0 = time.time()
         idx = data.get_nearly_point_idx(self.path, state)
+        print('t0',time.time() - t0)
+        t1 = time.time()
         x_data_gl = data.get_waypoints(idx, self.path, self.num_waypoint, self.waypoint_interval)
+        print('t1',time.time() - t1)
+        t2 = time.time()
         if len(x_data_gl) < self.num_waypoint:
-            self.display_input([])
+            self.display_path(self.path_nav_msg)
+            self.display_input(Path())
             return []
-        disp_interbal = int(len(self.path)/100)
-        self.display_path(self.path[::disp_interbal,0:2])
-        self.display_input(xp.vstack((state,x_data_gl))[:,0:2])
+        self.display_path(self.path_nav_msg)
+        input_nav_msg = self.xparray_to_nav_msgs(xp.vstack((state,x_data_gl))[:,0:2])
+        #self.display_input(input_nav_msg)
         x_data = coordinate.globalpos_to_localpos(x_data_gl, state)
+        print('t2',time.time() - t2)
         return x_data
 
     def quaternion_to_euler(self, quaternion):
         e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
         return Vector3(x=e[0], y=e[1], z=e[2])
 
-    def display_path(self, points):
+    def xparray_to_nav_msgs(self, array):
         path = Path()
-        path.header.frame_id = 'odom'
+        path.header.frame_id = ''
         path.header.stamp = rospy.Time.now()
-        for x,y in points:
+        for x,y in array:
             pose = PoseStamped()
-            pose.header.frame_id = 'odom'
+            pose.header.frame_id = ''
             pose.header.stamp = rospy.Time.now()
             pose.pose.position.x = x
             pose.pose.position.y = y
@@ -117,25 +143,17 @@ class Navigator:
             pose.pose.orientation.z = 0.0
             pose.pose.orientation.w = 1.0
             path.poses.append(pose)
-        self.pub_path.publish(path)
+        return path
 
-    def display_input(self, points):
-        path = Path()
-        path.header.frame_id = 'odom'
-        path.header.stamp = rospy.Time.now()
-        for x,y in points:
-            pose = PoseStamped()
-            pose.header.frame_id = 'odom'
-            pose.header.stamp = rospy.Time.now()
-            pose.pose.position.x = x
-            pose.pose.position.y = y
-            pose.pose.position.z = 0.0
-            pose.pose.orientation.x = 0.0
-            pose.pose.orientation.y = 0.0
-            pose.pose.orientation.z = 0.0
-            pose.pose.orientation.w = 1.0
-            path.poses.append(pose)
-        self.pub_input.publish(path)
+    def display_path(self, msg):
+        msg.header.frame_id = 'odom'
+        msg.header.stamp = rospy.Time.now()
+        self.pub_path.publish(msg)
+
+    def display_input(self, msg):
+        msg.header.frame_id = 'odom'
+        msg.header.stamp = rospy.Time.now()
+        self.pub_input.publish(msg)
 
     def update_selfpose(self, odom):
         self.selfpose = odom.pose.pose

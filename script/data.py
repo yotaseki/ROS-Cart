@@ -78,8 +78,8 @@ def write_path_csv(data, filename):
     df.to_csv(filename,header=None,index=False)
 
 def calc_distance(p1,p2,ax=0):
-    p1 = settings.xp.array(p1,dtype=settings.xp.float32)
-    p2 = settings.xp.array(p2,dtype=settings.xp.float32)
+    #p1 = settings.xp.array(p1,dtype=settings.xp.float32)
+    #p2 = settings.xp.array(p2,dtype=settings.xp.float32)
     D = settings.xp.sqrt(settings.xp.sum((p2-p1)**2,axis=ax))
     return D
 
@@ -154,16 +154,17 @@ def get_next_path_idx(idx,idx_list):
     return next_idx
     
 def get_waypoints(close_idx, data,num_step,space):
-    ret = settings.xp.empty((0,3))
+    ret = settings.xp.zeros((num_step,3),dtype=settings.xp.float32)
     idx = close_idx
     p1 = data[idx];
     for n in range(num_step):
         D = calc_distance(p1[0:2],data[idx:,0:2],ax=1)
         D = settings.xp.abs(D - space)
         idx = idx + settings.xp.argmin(D)
-        if(settings.xp.argmin(D) == 0):
+        if(settings.xp.argmin(D) == 0 ):
+            ret = []
             break
-        ret = settings.xp.vstack((ret,data[idx]))
+        ret[n,:] = data[idx]
         p1 = data[idx]
     return ret
 

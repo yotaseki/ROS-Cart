@@ -18,7 +18,6 @@ Panels:
         - /Path1/Offset1
         - /Path2
         - /Path2/Offset1
-        - /myMap1
       Splitter Ratio: 0.5
     Tree Height: 843
   - Class: rviz/Selection
@@ -661,18 +660,8 @@ Visualization Manager:
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
-      Topic: /cart/path_input
+      Topic: /cart/input
       Unreliable: false
-      Value: true
-    - Alpha: 0.699999988
-      Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
-      Enabled: true
-      Name: myMap
-      Topic: /mymap
-      Unreliable: false
-      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
