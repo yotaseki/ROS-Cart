@@ -50,8 +50,8 @@ def main():
                     print('output[v,w]')
                     print(y.data[0])
                     params = y.data[0]
-                    v = params[1,0] * 10 # * 0.5
-                    w = params[1,1] * 10 # * 0.5
+                    v = params[0,0] * hz # * 0.5
+                    w = params[0,1] * hz # * 0.5
                     controller.command_vel(v,w)
                     t_com = time.time() - t_com
                     '''
@@ -105,22 +105,22 @@ class Navigator:
         y = self.selfpose.position.y
         th = pose.z
         state = xp.array((x,y,th),xp.float32)
-        t0 = time.time()
+        #t0 = time.time()
         idx = data.get_nearly_point_idx(self.path, state)
-        print('t0',time.time() - t0)
-        t1 = time.time()
+        #print('t0',time.time() - t0)
+        #t1 = time.time()
         x_data_gl = data.get_waypoints(idx, self.path, self.num_waypoint, self.waypoint_interval)
-        print('t1',time.time() - t1)
-        t2 = time.time()
+        #print('t1',time.time() - t1)
+        #t2 = time.time()
         if len(x_data_gl) < self.num_waypoint:
             self.display_path(self.path_nav_msg)
             self.display_input(Path())
             return []
         self.display_path(self.path_nav_msg)
         input_nav_msg = self.xparray_to_nav_msgs(xp.vstack((state,x_data_gl))[:,0:2])
-        #self.display_input(input_nav_msg)
+        self.display_input(input_nav_msg)
         x_data = coordinate.globalpos_to_localpos(x_data_gl, state)
-        print('t2',time.time() - t2)
+        #print('t2',time.time() - t2)
         return x_data
 
     def quaternion_to_euler(self, quaternion):
