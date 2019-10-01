@@ -15,19 +15,22 @@ def main():
     # Params
     hz = 10
     velocity = 0.3
-    num_waypoint = 10
+    num_waypoint = 1
     num_step = num_waypoint
-    waypoint_interval = velocity / hz
+    waypoint_interval = velocity
     # ROS Settings
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
     navigator = Navigator(num_waypoint,waypoint_interval)
     navigator.read_path_csv(sys.argv[1], scale=1.0)
     rate = rospy.Rate(hz);
-    # LOAD WEIGHT
-    weight = sys.argv[2]
-    model = Generator(num_waypoint, num_step)
-    serializers.load_npz(weight, model)
+    # PID
+    Kp = 1.0
+    Ki = 0.3
+    Kd = 0.02
+    init_pos = xp.array([0.0,0.0])
+    pid = PID(init_pos,Kp,Ki,Kd,hz)
+    # processing time
     t_navi = time.time()
     t_com = time.time()
     t_all = time.time()
@@ -43,20 +46,14 @@ def main():
                     print('\nodom')
                     print(navigator.selfpos)
                     print('input[x,y]')
-                    print(x[:,0:2])
-                    x = xp.array([x[:,0:2].flatten()], dtype=xp.float32)
-                    x = Variable(x)
-                    y = model(x)
+                    print(x[-1,0:2])
+                    y = pid.step(x[-1,0:2])
                     print('output[v,w]')
-                    print(y.data[0])
-                    params = y.data[0]
-                    v = params[0,0] * hz # * 0.5
-                    w = params[0,1] * hz # * 0.5
+                    print(y)
+                    v = y[0]
+                    w = y[1]
                     controller.command_vel(v,w)
                     t_com = time.time() - t_com
-                    if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
-                        print('failed...')
-                        break
                 else:
                     print('finished')
                     break
@@ -67,6 +64,24 @@ def main():
             rate.sleep()
     except rospy.ROSInterruptException:
         sys.exit()
+
+class PID:
+    def __init__(self,u_init,P=0.1,I=0.1,D=0.1, HZ=10):
+        self.u = u_init
+        self.du = u_init
+        self.Ts = 1.0 / HZ
+        self.e = xp.zeros(len(u_init))
+        self.de = xp.zeros(len(u_init))
+        self.Kp = P
+        self.Ki = I
+        self.Kd = D
+
+    def step(self, error):
+        self.de = self.e
+        self.e = error
+        self.du = self.u
+        self.u = self.du + self.Kp*(self.e-self.de) + self.Ki*(self.e-self.de)*self.Ts + self.Kd*((self.e-self.de)/self.Ts)
+        return self.u
 
 class Controller:
     def __init__(self):
