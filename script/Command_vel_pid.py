@@ -25,7 +25,7 @@ def main():
     navigator.read_path_csv(sys.argv[1], scale=1.0)
     rate = rospy.Rate(hz);
     # PID
-    Kp = 1.0
+    Kp = 0.7
     Ki = 0.3
     Kd = 0.02
     init_pos = xp.array([0.0,0.0])

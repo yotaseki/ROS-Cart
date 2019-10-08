@@ -40,7 +40,7 @@ def main():
                 t_navi= time.time() - t_navi
                 if len(x) == num_step:
                     t_com = time.time()
-                    print('\nodom')
+                    print('\nrobot_pose[x,y,th]')
                     print(navigator.selfpos)
                     print('input[x,y]')
                     print(x[:,0:2])
@@ -50,13 +50,16 @@ def main():
                     print('output[v,w]')
                     print(y.data[0])
                     params = y.data[0]
-                    v = params[0,0] * hz # * 0.5
-                    w = params[0,1] * hz # * 0.5
+                    v = params[0,0] * 10
+                    w = params[0,1] * 10
+                    #w = xp.clip(w,-1,1)
                     controller.command_vel(v,w)
                     t_com = time.time() - t_com
+                    '''
                     if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
                         print('failed...')
                         break
+                    '''
                 else:
                     print('finished')
                     break
