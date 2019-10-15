@@ -68,6 +68,13 @@ def rotate_path(path, rad):
     ret = settings.xp.stack((X,Y,R),axis=1)
     return ret
 
+def translate_path(path, margin_x, margin_y):
+    X = path[:,0] + margin_x
+    Y = path[:,1] + margin_y
+    R = path[:,2]
+    ret = settings.xp.stack((X,Y,R),axis=1)
+    return ret
+
 def read_path_csv(filename):
     df = pd.read_csv(filename, header=None)
     path = settings.xp.array(df.values,dtype=settings.xp.float32)
