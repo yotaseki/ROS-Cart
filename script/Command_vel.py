@@ -14,8 +14,10 @@ import time
 def main():
     # Params
     hz = 10
-    velocity = 0.3
     num_waypoint = 10
+    velocity = 0.3
+    max_v = 0.5
+    max_w = xp.pi * 0.5
     num_step = num_waypoint
     waypoint_interval = velocity / hz
     # ROS Settings
@@ -50,8 +52,10 @@ def main():
                     print('output[v,w]')
                     print(y.data[0])
                     params = y.data[0]
-                    v = params[0,0] * hz # * 0.5
-                    w = params[0,1] * hz # * 0.5
+                    v = xp.clip(params[0,0] * hz, -max_v,max_v)
+                    w = xp.clip(params[0,1] * hz, -max_w, max_w)
+                    print('Command')
+                    print(v,w)
                     controller.command_vel(v,w)
                     t_com = time.time() - t_com
                     if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
