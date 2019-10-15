@@ -8,8 +8,8 @@ import numpy as np
 import math
 
 class Generator(Chain):
-    def __init__(self, point_num, num_step):
-        self.input_dim = point_num * 2
+    def __init__(self, num_waypoint, num_step):
+        self.input_dim = num_waypoint * 2
         self.num_step = num_step
         self.output_dim = num_step * 2
         self.l1_dim = 15
