@@ -1,5 +1,5 @@
 import rospy
-import sys
+import sys, os
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped, Vector3
 from nav_msgs.msg import Path, Odometry
 from chainer import Variable
@@ -9,30 +9,43 @@ import xp_settings as settings
 import data
 import coordinate
 from model import Oplus, Generator
-import time
+import time, datetime
+import pandas as pd
+CAPTURE_LOG = False
 
 def main():
+    print('PATH:',sys.argv[1])
+    print('WEIGHT:',sys.argv[2])
     # Params
     hz = 10
     num_waypoint = 10
-    velocity = 0.3
+    num_step = num_waypoint
+    v_sec = 0.3
     max_v = 0.5
     max_w = xp.pi * 0.5
-    num_step = num_waypoint
-    waypoint_interval = velocity / hz
+    waypoint_interval = v_sec / hz
     # ROS Settings
+    path_name = sys.argv[1]
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
     navigator = Navigator(num_waypoint,waypoint_interval)
-    navigator.read_path_csv(sys.argv[1], scale=1.0)
+    navigator.read_path_csv(path_name, scale=1.0)
     rate = rospy.Rate(hz);
     # LOAD WEIGHT
-    weight = sys.argv[2]
+    weight_name = sys.argv[2]
     model = Generator(num_waypoint, num_step)
-    serializers.load_npz(weight, model)
+    serializers.load_npz(weight_name, model)
     t_navi = time.time()
     t_com = time.time()
     t_all = time.time()
+
+    if CAPTURE_LOG:
+        dir_log = 'log_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
+        os.mkdir(dir_log)
+        log_pos = []
+        log_x = []
+        log_v = []
+        log_w = []
     try:
         while not rospy.is_shutdown():
             t_all = time.time()
@@ -42,35 +55,51 @@ def main():
                 t_navi= time.time() - t_navi
                 if len(x) == num_step:
                     t_com = time.time()
-                    print('\nodom')
-                    print(navigator.selfpos)
-                    print('input[x,y]')
-                    print(x[:,0:2])
+                    #print('\nodom')
+                    #print(navigator.selfpos)
+                    #print('input[x,y]')
+                    #print(x[:,0:2])
                     x = xp.array([x[:,0:2].flatten()], dtype=xp.float32)
                     x = Variable(x)
                     y_v,y_w = model(x)
-                    print('output[v,w]')
-                    print(y_v.data)
-                    print(y_w.data)
-                    v = xp.clip(y_v.data[0,0] * hz, -max_v,max_v)
+                    #print('output[v,w]')
+                    #print(y_v.data)
+                    #print(y_w.data)
+                    v = xp.clip(y_v.data[0,0] * hz, 0.0,max_v)
                     w = xp.clip(y_w.data[0,0] * hz, -max_w, max_w)
-                    print('Command')
+                    #print('Command')
                     print(v,w)
                     controller.command_vel(v,w)
                     t_com = time.time() - t_com
-                    if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
-                        print('failed...')
-                        break
+                    if CAPTURE_LOG:
+                        log_pos.append(navigator.selfpos)
+                        log_x.append(x.data[0])
+                        log_v.append(y_v.data[0,:])
+                        log_w.append(y_w.data[0,:])
+                    #if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
+                    #    print('failed...')
+                    #    break
                 else:
                     print('finished')
                     break
-            t_all = time.time() - t_all
-            print('processing time: ',t_all,'[sec]')
-            print('|- Navigator time: ',t_navi,'[sec]')
-            print('|- Controller time: ',t_com,'[sec]')
             rate.sleep()
+            t_all = time.time() - t_all
+            print('time: ',t_all,'[sec]')
+            #print('|- Navigator time: ',t_navi,'[sec]')
+            #print('|- Controller time: ',t_com,'[sec]')
+        if CAPTURE_LOG:
+            list_to_csv(log_pos,dir_log+'/log_pos.csv')
+            list_to_csv(log_x,dir_log+'/log_x.csv')
+            list_to_csv(log_v,dir_log+'/log_v.csv')
+            list_to_csv(log_w,dir_log+'/log_w.csv')
+            data.CAPTURE_path_csv(navigator.path, dir_log+'/log_path.csv')
     except rospy.ROSInterruptException:
         sys.exit()
+
+def list_to_csv(l,name):
+    arr = xp.array(l,dtype=xp.float32)
+    df = pd.DataFrame(arr)
+    df.to_csv(name,index=False,header=False)
 
 class Controller:
     def __init__(self):
