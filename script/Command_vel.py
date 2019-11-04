@@ -92,7 +92,7 @@ def main():
             list_to_csv(log_x,dir_log+'/log_x.csv')
             list_to_csv(log_v,dir_log+'/log_v.csv')
             list_to_csv(log_w,dir_log+'/log_w.csv')
-            data.CAPTURE_path_csv(navigator.path, dir_log+'/log_path.csv')
+            data.write_path_csv(navigator.path, dir_log+'/log_path.csv')
     except rospy.ROSInterruptException:
         sys.exit()
 

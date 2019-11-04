@@ -82,6 +82,11 @@ def replot_fig3(pos):
     X,Y,U,V = delta_arrow(x,y,th,delta=delta)
     p3_selfpos.set_offsets([X,Y])
     p3_selfpos.set_UVC(U,V)
+    #path_idx = data.get_nearly_point_idx(path,pos)
+    #x,y,th = path[path_idx]
+    #X,Y,U,V = delta_arrow(x,y,th,delta=delta)
+    #p3_truepos.set_offsets([X,Y])
+    #p3_truepos.set_UVC(U,V)
     ax3.set_xlim([x-radius,x+radius])
     ax3.set_ylim([y-radius,y+radius])
 
@@ -158,6 +163,8 @@ if __name__=='__main__':
     delta = 0.02
     X,Y,U,V = delta_arrow(pos[0,0],pos[0,1],pos[0,2],delta=delta)
     p3_selfpos = ax3.quiver(X,Y,U,V, scale_units='xy', angles='xy', scale=1,color='black',width=delta)
+    #X,Y,U,V = delta_arrow(path[0,0],path[0,1],pos[0,2],delta=delta)
+    #p3_truepos = ax3.quiver(X,Y,U,V, scale_units='xy', angles='xy', scale=1,color='red',width=delta)
     ax3.legend(['target_path','pose_log','robot'])
     radius = 0.1
     ax3.set_xlim([pos[0,0]-radius,pos[0,0]+radius])

@@ -2,6 +2,7 @@ import cv2
 import pandas as pd
 import numpy as np
 from scipy import interpolate
+import datetime
 
 def main():
     p_curve = np.empty((0,2),dtype=np.uint8)
@@ -39,7 +40,7 @@ def main():
             left_down = False
         if k==ord('c'):
             img_drawn = img.copy()
-            p_clicked = np.empty((0,2),dtype=np.float32)
+            p_clicked = np.empty((0,2),dtype=np.uint8)
             p_curve = np.empty((0,2),dtype=np.uint8)
         if k==ord('q'):
             break;
@@ -54,7 +55,12 @@ def main():
     print(p_curve.shape)
     p_curve = np.round(p_curve,decimals=8)
     df = pd.DataFrame(p_curve)
-    df.to_csv('curve_spline.csv',float_format= '%.8f',header=None,index=False)
+    df.to_csv(get_filename('curve_spline','.csv'),float_format= '%.8f',header=None,index=False)
+
+def get_filename(head,ext):
+    d = '{0:%Y%m%d%H%M}'.format(datetime.datetime.now())
+    fn = head + d + ext
+    return fn
 
 def mouse_callback(e,x,y,flags,param):
     global mx,my,left_down
