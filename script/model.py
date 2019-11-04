@@ -8,25 +8,24 @@ import numpy as np
 import math
 
 class Generator(Chain):
-    def __init__(self, point_num, num_step):
-        self.input_dim = point_num * 2
-        self.num_step = num_step
-        self.output_dim = num_step * 2
+    def __init__(self, num_waypoint, num_step):
+        self.input_dim = num_waypoint * 2
+        self.output_dim = num_step
         self.l1_dim = 15
         self.l2_dim = 8
         initializer = initializers.HeNormal()
         super(Generator, self).__init__(
             l1=L.Linear(self.input_dim, self.l1_dim, initialW=initializer),
             l2=L.Linear(self.l1_dim, self.l2_dim, initialW=initializer),
-            l3=L.Linear(self.l2_dim, self.output_dim, initialW=initializer),
+            l3_v=L.Linear(self.l2_dim, self.output_dim, initialW=initializer),
+            l3_w=L.Linear(self.l2_dim, self.output_dim, initialW=initializer),
         )
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
-        h3 = self.l3(h2)
-        h4 = F.tanh(h3)
-        o = F.reshape(h4,(len(x),self.num_step,2))
-        return o
+        out_v = F.tanh(self.l3_v(h2))
+        out_w = F.tanh(self.l3_w(h2))
+        return out_v, out_w
 
 class Oplus(Function):
     def forward_cpu(self, inputs):
