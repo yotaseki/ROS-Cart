@@ -6,7 +6,7 @@ from scipy import interpolate
 def main():
     p_curve = np.empty((0,2),dtype=np.uint8)
     p_clicked = np.empty((0,2),dtype=np.uint8)
-    scale = 0.002
+    scale = 0.005
     img_w = 1000 # m
     img_h = 1000
     img = np.ones((img_w,img_h,3),np.uint8)
