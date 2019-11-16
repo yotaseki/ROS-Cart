@@ -11,7 +11,7 @@ import coordinate
 from model import Oplus, Generator
 import time, datetime
 import pandas as pd
-SAMPLING = False
+SAMPLING = True
 
 def main():
     print('WEIGHT:',sys.argv[1])
@@ -41,27 +41,25 @@ def main():
     t_navi = time.time()
     t_com = time.time()
     t_all = time.time()
-    itr = 100
+    itr = 10
     if SAMPLING:
-        dir_log = 'DATA_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
+        dir_log = 'DATA_'+os.path.basename(weight_name)
         os.mkdir(dir_log)
     log_x = []
     log_v = []
     log_w = []
     log_pos = []
+    x = []
+    pos = []
+    step = 0
+    replanning = True
     try:
-        x = []
-        pos = []
-        step = 0
-        replanning = True
         while not rospy.is_shutdown():
             t_all = time.time()
             if(navigator.ready):
                 t_navi= time.time()
                 if replanning == True:
-                    print('***')
                     rand_rad = xp.random.rand()*(2*DATA_W_STEP)-DATA_W_STEP
-                    print(rand_rad)
                     p = navigator.sampling(rand_rad)
                     x = xp.array([p[:,0:2].flatten()], dtype=xp.float32)
                     x = Variable(x)
@@ -91,7 +89,7 @@ def main():
                     log_v.append(y_v.data[0,:])
                     log_w.append(y_w.data[0,:])
                     log_pos.append(arr.flatten())
-                    print('itrate: ',len(log_x))
+                    print('iter: ',len(log_x))
                     step = 0
                     pos = []
                     replanning = True
@@ -103,7 +101,7 @@ def main():
                 #    break
             rate.sleep()
             t_all = time.time() - t_all
-            print('time: ',t_all,'[sec]')
+            #print('time: ',t_all,'[sec]')
             #print('|- Navigator time: ',t_navi,'[sec]')
             #print('|- Controller time: ',t_com,'[sec]')
         if SAMPLING:
