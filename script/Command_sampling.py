@@ -2,6 +2,7 @@ import rospy
 import sys, os
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped, Vector3
 from nav_msgs.msg import Path, Odometry
+from gazebo_msgs.msg import ModelStates
 from chainer import Variable
 from chainer import initializers, serializers
 import tf
@@ -78,13 +79,14 @@ def main():
                 w = xp.clip(y_w.data[0,step] * DATA_HZ, -max_w, max_w)
                 #print('Command')
                 #print(v,w)
-                navigator.update_selfpos()
+                selfpos = navigator.get_position3D(navigator.selfpose_t)
                 controller.command_vel(v,w)
                 t_com = time.time() - t_com
-                pos.append(navigator.selfpos)
+                pos.append(selfpos)
                 step = step + 1
                 if step == DATA_NUM_STEP:
                     arr = xp.array(pos)
+                    arr = arr - arr[0]
                     log_x.append(x.data[0])
                     log_v.append(y_v.data[0,:])
                     log_w.append(y_w.data[0,:])
@@ -133,10 +135,11 @@ class Navigator:
         # self.pose_offset_x = 0.0
         # self.pose_offset_y = 0.0
         rospy.Subscriber('/odom',Odometry,self.update_selfpose)
+        rospy.Subscriber('/gazebo/model_states',ModelStates,self.update_selfpose_t)
         self.pub_path = rospy.Publisher('/cart/path',Path,queue_size=5)
         self.pub_input = rospy.Publisher('/cart/input',Path,queue_size=5)
         self.selfpose = PoseStamped().pose
-        self.selfpos = xp.array((0,0,0),xp.float32)
+        self.selfpose_t = PoseStamped().pose
         self.num_waypoint = num_waypoint
         self.waypoint_interval = waypoint_interval
         self.path = []
@@ -161,18 +164,14 @@ class Navigator:
             rand_rotate = xp.random.rand()*(rotate*2)-rotate
             d = data.rotate_path(d,rand_rotate)
         x_lc = d
-        self.update_selfpos()
-        x_gl = coordinate.localpos_to_globalpos(x_lc,self.selfpos)
+        selfpos = self.get_position3D(self.selfpose_t)
+        x_gl = coordinate.localpos_to_globalpos(x_lc, selfpos)
         msg = self.xparray_to_nav_msgs(x_gl[:,0:2])
         self.display_path(msg)
         return x_lc
 
     def step(self):
-        pose = self.quaternion_to_euler(self.selfpose.orientation)
-        x = self.selfpose.position.x
-        y = self.selfpose.position.y
-        th = pose.z
-        self.selfpos = xp.array((x,y,th),xp.float32)
+        selfpos = self.get_position3D(self.selfpose)
         #t0 = time.time()
         idx = data.get_nearly_point_idx(self.path, self.selfpos)
         #print('t0',time.time() - t0)
@@ -185,9 +184,9 @@ class Navigator:
             self.display_input(Path())
             return []
         self.display_path(self.path_nav_msg)
-        input_nav_msg = self.xparray_to_nav_msgs(xp.vstack((self.selfpos,x_data_gl))[:,0:2])
+        input_nav_msg = self.xparray_to_nav_msgs(xp.vstack((selfpos,x_data_gl))[:,0:2])
         self.display_input(input_nav_msg)
-        x_data = coordinate.globalpos_to_localpos(x_data_gl, self.selfpos)
+        x_data = coordinate.globalpos_to_localpos(x_data_gl, selfpos)
         #print('t2',time.time() - t2)
         return x_data
 
@@ -223,18 +222,23 @@ class Navigator:
         msg.header.stamp = rospy.Time.now()
         self.pub_input.publish(msg)
     
-    def update_selfpos(self):
+    def get_position3D(self,pose):
         pose = self.quaternion_to_euler(self.selfpose.orientation)
         x = self.selfpose.position.x
         y = self.selfpose.position.y
         th = pose.z
-        self.selfpos = xp.array((x,y,th),xp.float32)
+        pos3D = xp.array((x,y,th),xp.float32)
+        return pos3D
 
     def update_selfpose(self, odom):
         self.selfpose = odom.pose.pose
         # self.selfpose.position.x = self.selfpose.position.x - self.pose_offset_x
         # self.selfpose.position.y = self.selfpose.position.y - self.pose_offset_y
         self.ready = True
+
+    def update_selfpose_t(self,states):
+        idx  = states.name.index('mobile_base')
+        self.selfpose_t = states.pose[idx]
 
 if __name__=='__main__':
     settings.set_gpu(-1)
