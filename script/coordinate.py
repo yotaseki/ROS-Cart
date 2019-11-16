@@ -21,3 +21,9 @@ def globalpos_to_localpos(data,selfpos):
     ret = rotate(ret,-th)
     return ret
 
+def localpos_to_globalpos(data,selfpos):
+    x,y,th = selfpos
+    ret = data
+    ret = rotate(ret,th)
+    ret = translate(ret,-x,-y)
+    return ret

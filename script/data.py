@@ -177,8 +177,8 @@ def get_waypoints(close_idx, data,num_step,space):
 
 def generate_arc_path(num_step,rad_per_step,m_per_step):
     digit = 10 ** 5
-    rad_per_step = float(int(rad_per_step * digit) / digit)
-    if(rad_per_step == 0):
+    rad_per_step = float(int(rad_per_step * digit)) / digit
+    if(rad_per_step == 0): 
         X = settings.xp.linspace(.0, m_per_step*num_step, num_step,endpoint=False) + m_per_step
         Y = settings.xp.zeros(len(X))
         TH = settings.xp.zeros(len(X))
