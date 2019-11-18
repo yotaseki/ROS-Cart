@@ -100,3 +100,13 @@ class Oplus(Function):
 
 def oplus(x, y):
     return Oplus()(x,y)
+
+def calc_oplus(y):
+    dst = []
+    z = y[0]
+    dst.append(z)
+    for step in range(1,len(y)):
+        z = oplus(z,y[step])
+        dst.append(z.data)
+    return dst
+

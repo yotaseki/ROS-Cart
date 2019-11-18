@@ -86,7 +86,7 @@ def main():
                 step = step + 1
                 if step == DATA_NUM_STEP:
                     arr = xp.array(pos)
-                    arr = arr - arr[0]
+                    #arr = arr - arr[0]
                     log_x.append(x.data[0])
                     log_v.append(y_v.data[0,:])
                     log_w.append(y_w.data[0,:])
