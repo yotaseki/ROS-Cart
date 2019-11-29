@@ -2,38 +2,48 @@ import rospy
 import sys, os
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped, Vector3
 from nav_msgs.msg import Path, Odometry
+from gazebo_msgs.msg import ModelStates
 from chainer import Variable
 from chainer import initializers, serializers
 import tf
-import xp_settings as settings
-import data
-import coordinate
-from model import Oplus, Generator
 import time, datetime
 import pandas as pd
+
+from model import Oplus, Generator
+import data
+import options
+import coordinate
+import xp_settings as settings
+settings.set_gpu(-1)
+xp = settings.xp
 CAPTURE_LOG = True
 
 def main():
     print('PATH:',sys.argv[1])
     print('WEIGHT:',sys.argv[2])
     # Params
-    hz = 10
-    num_waypoint = 10
-    num_step = num_waypoint
-    v_sec = 0.3
-    max_v = 0.5
-    max_w = xp.pi * 0.5
-    waypoint_interval = v_sec / hz
+    options.init()
+    options.DATA_SIZE = 1000
+    options.DATA_NUM_WAYPOINTS = 10
+    options.DATA_NUM_STEP = options.DATA_NUM_WAYPOINTS
+    options.DATA_HZ = 10
+    options.DATA_V_STEP = 0.5 / options.DATA_HZ # [m/step]
+    options.DATA_MAX_V_STEP = 1.0 / options.DATA_HZ # [m/step]
+    options.DATA_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
+    options.DATA_MAX_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
+    options.DATA_NUM_PREVIOUS_U = 1
+    options.DATA_RANGE_TRANSLATE = 0
+    options.DATA_RANGE_ROTATE = 0
     # ROS Settings
     path_name = sys.argv[1]
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
-    navigator = Navigator(num_waypoint,waypoint_interval)
+    navigator = Navigator(options.DATA_NUM_STEP,options.DATA_V_STEP)
     navigator.read_path_csv(path_name, scale=1.0)
-    rate = rospy.Rate(hz);
+    rate = rospy.Rate(options.DATA_HZ);
     # LOAD WEIGHT
     weight_name = sys.argv[2]
-    model = Generator(num_waypoint, num_step)
+    model = Generator(options.DATA_NUM_WAYPOINTS, options.DATA_NUM_PREVIOUS_U, options.DATA_NUM_STEP)
     serializers.load_npz(weight_name, model)
     t_navi = time.time()
     t_com = time.time()
@@ -43,6 +53,7 @@ def main():
         dir_log = 'GazeboLog_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
         os.mkdir(dir_log)
         log_pos = []
+        log_pos_t = []
         log_x = []
         log_v = []
         log_w = []
@@ -52,29 +63,29 @@ def main():
             t_all = time.time()
             if(navigator.ready):
                 t_navi= time.time()
-                x_data = navigator.step()
                 selfpos = navigator.get_position3D(navigator.selfpose)
                 selfpos_t = navigator.get_position3D(navigator.selfpose_t)
+                x = navigator.step(selfpos_t)
                 t_navi= time.time() - t_navi
-                if len(x) == num_step:
+                if len(x) == options.DATA_NUM_WAYPOINTS:
                     t_com = time.time()
-                    #print('\nodom')
-                    #print(navigator.selfpos)
-                    #print('input[x,y]')
-                    #print(x[:,0:2])
-                    x = xp.vstack((x_data[:,0:2],du))
+                    print('selfpos')
+                    print(selfpos_t)
+                    print('input[x,y]')
+                    print(x[:,0:2])
+                    x = xp.vstack((x[:,0:2],du))
                     x = xp.ravel(x)
                     x = xp.array([x],dtype=xp.float32)
                     x = Variable(x)
                     uv,uw = model(x)
                     v_lim = options.DATA_MAX_V_STEP
                     w_lim = options.DATA_MAX_W_STEP
-                    v = xp.clip(uv,.0,v_lim)
-                    w = xp.clip(uw,-w_lim,w_lim)
-                    com_v = uv[0,0]* hz
-                    com_w = uw[0,0]* hz
-                    du[0] = uv[0,0]
-                    du[1] = uw[0,0]
+                    v = xp.clip(uv.data[0,:],.0,v_lim)
+                    w = xp.clip(uw.data[0,:],-w_lim,w_lim)
+                    com_v = v[0]* options.DATA_HZ
+                    com_w = w[0]* options.DATA_HZ
+                    du[0] = v[0]
+                    du[1] = w[0]
                     #print('output[v,w]')
                     #print(v.data)
                     #print(w.data)
@@ -86,8 +97,8 @@ def main():
                         log_pos.append(selfpos)
                         log_pos_t.append(selfpos_t)
                         log_x.append(x.data[0])
-                        log_v.append(v.data[0,:])
-                        log_w.append(w.data[0,:])
+                        log_v.append(v)
+                        log_w.append(w)
                     #if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
                     #    print('failed...')
                     #    break
@@ -128,6 +139,7 @@ class Navigator:
         # self.pose_offset_x = 0.0
         # self.pose_offset_y = 0.0
         rospy.Subscriber('/odom',Odometry,self.update_selfpose)
+        rospy.Subscriber('/gazebo/model_states',ModelStates,self.update_selfpose_t)
         self.pub_path = rospy.Publisher('/cart/path',Path,queue_size=5)
         self.pub_input = rospy.Publisher('/cart/input',Path,queue_size=5)
         self.selfpose = PoseStamped().pose
@@ -144,8 +156,7 @@ class Navigator:
         disp_interbal = int(len(self.path)/100)
         self.path_nav_msg = self.xparray_to_nav_msgs(self.path[::disp_interbal,0:2])
 
-    def step(self):
-        selfpos = navigator.get_position3D(self.selfpose_t)
+    def step(self, selfpos):
         #t0 = time.time()
         idx = data.get_nearly_point_idx(self.path, selfpos)
         #print('t0',time.time() - t0)
@@ -211,8 +222,7 @@ class Navigator:
     def update_selfpose_t(self,states):
         idx  = states.name.index('mobile_base')
         self.selfpose_t = states.pose[idx]
+        self.ready = True
 
 if __name__=='__main__':
-    settings.set_gpu(-1)
-    xp = settings.xp
     main()
