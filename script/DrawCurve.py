@@ -7,10 +7,18 @@ import datetime
 def main():
     p_curve = np.empty((0,2),dtype=np.uint8)
     p_clicked = np.empty((0,2),dtype=np.uint8)
-    scale = 0.005
-    img_w = 1000 # m
+    img_w = 1000
     img_h = 1000
+    scale = 10. / img_w
     img = np.ones((img_w,img_h,3),np.uint8)
+    for v in range(0,img_w,100):
+        top = 0
+        bottom = img_h-1
+        cv2.line(img, (top,v),(bottom,v),(50,50,50))
+    for h in range(0,img_h,100):
+        left = 0
+        right = img_w-1
+        cv2.line(img, (h,left),(h,right),(50,50,50))
     img = img * 255
     img_drawn = img.copy()
     cv2.namedWindow('drawPath')
@@ -46,8 +54,8 @@ def main():
             break;
     cv2.destroyAllWindows()
 
-    p_curve = p_curve - p_curve[0]
     p_curve = p_curve * scale
+    p_curve = p_curve - p_curve[0]
     rad = getRadian(np.transpose(p_curve[:len(p_curve)-1]),np.transpose(p_curve[1:]))
     rad = np.insert(rad,0,0.0)
     p_curve = np.hstack((p_curve,np.transpose([rad])))
