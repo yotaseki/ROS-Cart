@@ -31,7 +31,7 @@ def main():
     options.DATA_MAX_V_STEP = 1.0 / options.DATA_HZ # [m/step]
     options.DATA_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
     options.DATA_MAX_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
-    options.DATA_NUM_PREVIOUS_U = 1
+    options.DATA_NUM_PREVIOUS_U = 0
     options.DATA_RANGE_TRANSLATE = 0
     options.DATA_RANGE_ROTATE = 0
     # ROS Settings
@@ -50,8 +50,6 @@ def main():
     t_all = time.time()
 
     if CAPTURE_LOG:
-        dir_log = 'GazeboLog_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
-        os.mkdir(dir_log)
         log_pos = []
         log_pos_t = []
         log_x = []
@@ -65,7 +63,7 @@ def main():
                 t_navi= time.time()
                 selfpos = navigator.get_position3D(navigator.selfpose)
                 selfpos_t = navigator.get_position3D(navigator.selfpose_t)
-                x = navigator.step(selfpos_t)
+                x = navigator.step(selfpos)
                 t_navi= time.time() - t_navi
                 if len(x) == options.DATA_NUM_WAYPOINTS:
                     t_com = time.time()
@@ -73,14 +71,16 @@ def main():
                     print(selfpos_t)
                     print('input[x,y]')
                     print(x[:,0:2])
-                    x = xp.vstack((x[:,0:2],du))
+                    x = x[:,0:2]
+                    if options.DATA_NUM_PREVIOUS_U > 0:
+                        x = xp.vstack((x,du))
                     x = xp.ravel(x)
                     x = xp.array([x],dtype=xp.float32)
                     x = Variable(x)
                     uv,uw = model(x)
                     v_lim = options.DATA_MAX_V_STEP
                     w_lim = options.DATA_MAX_W_STEP
-                    v = xp.clip(uv.data[0,:],.0,v_lim)
+                    v = xp.clip(uv.data[0,:],.01,v_lim)
                     w = xp.clip(uw.data[0,:],-w_lim,w_lim)
                     com_v = v[0]* options.DATA_HZ
                     com_w = w[0]* options.DATA_HZ
@@ -111,6 +111,8 @@ def main():
             #print('|- Navigator time: ',t_navi,'[sec]')
             #print('|- Controller time: ',t_com,'[sec]')
         if CAPTURE_LOG:
+            dir_log = 'GazeboLog_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
+            os.mkdir(dir_log)
             list_to_csv(log_pos,dir_log+'/log_pos.csv')
             list_to_csv(log_pos_t,dir_log+'/log_pos_t.csv')
             list_to_csv(log_x,dir_log+'/log_x.csv')
