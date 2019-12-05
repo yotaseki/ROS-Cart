@@ -19,7 +19,7 @@ import options
 import xp_settings as settings
 import data
 import coordinate
-import train
+import train_tools
 from model import Oplus, Generator, calc_oplus
 WRITE_DATA = False
 settings.set_gpu(0)
@@ -69,7 +69,7 @@ def main():
     log_v = []
     log_w = []
     log_pos = []
-    X = train.make_dataset()
+    X = train_tools.make_dataset()
     random.shuffle(X)
     max_epoch = 10
     iterate = 0
@@ -127,8 +127,8 @@ def main():
                     z_sim_arr = coordinate.globalpos_to_localpos(z_sim_arr[1:],z_sim_arr[0])
                     z_sim = Variable(z_sim_arr)
                     z_t = x_data
-                    sim_loss = train.loss_function(z_sim,z_oplus)
-                    oplus_loss = train.loss_function(z_oplus,z_t)
+                    sim_loss = train_tools.loss_function(z_sim,z_oplus)
+                    oplus_loss = train_tools.loss_function(z_oplus,z_t)
                     loss = sim_loss + oplus_loss
                     l_ep = l_ep + loss.data
                     model.cleargrads()

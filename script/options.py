@@ -16,11 +16,11 @@ def init():
     DATA_NUM_WAYPOINTS = 10
     DATA_NUM_STEP = DATA_NUM_WAYPOINTS
     DATA_HZ = 10
-    DATA_V_STEP = 0.5 / DATA_HZ # [m/step]
+    DATA_V_STEP = 1.0 / DATA_HZ # [m/step]
     DATA_MAX_V_STEP = 1.0 / DATA_HZ # [m/step]
-    DATA_W_STEP = np.pi * 0.5 / DATA_HZ # [rad/step]
-    DATA_MAX_W_STEP = np.pi * 0.5 / DATA_HZ # [rad/step]
-    DATA_NUM_PREVIOUS_U = 1
+    DATA_W_STEP = (np.pi/6) / DATA_HZ # [rad/step]
+    DATA_MAX_W_STEP = (np.pi/6) / DATA_HZ # [rad/step]
+    DATA_NUM_PREVIOUS_U = 0
     DATA_RANGE_TRANSLATE = 0
     DATA_RANGE_ROTATE = 0
 
