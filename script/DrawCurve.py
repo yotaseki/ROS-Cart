@@ -9,13 +9,15 @@ def main():
     p_clicked = np.empty((0,2),dtype=np.uint8)
     img_w = 1000
     img_h = 1000
-    scale = 10. / img_w
+    grid = 20
+    div = 1000 / grid
+    scale = (1. / 1000) * grid
     img = np.ones((img_w,img_h,3),np.uint8)
-    for v in range(0,img_w,100):
+    for v in range(0,img_w,div):
         top = 0
         bottom = img_h-1
         cv2.line(img, (top,v),(bottom,v),(50,50,50))
-    for h in range(0,img_h,100):
+    for h in range(0,img_h,div):
         left = 0
         right = img_w-1
         cv2.line(img, (h,left),(h,right),(50,50,50))
