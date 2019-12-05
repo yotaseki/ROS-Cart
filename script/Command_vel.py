@@ -20,9 +20,10 @@ def main():
     hz = 10
     num_waypoint = 10
     num_step = num_waypoint
-    v_sec = 0.3
-    max_v = 0.5
-    max_w = xp.pi * 0.5
+    num_u = 0
+    v_sec = 1.0
+    max_v = 1.0
+    max_w = 1.0
     waypoint_interval = v_sec / hz
     # ROS Settings
     path_name = sys.argv[1]
@@ -33,7 +34,7 @@ def main():
     rate = rospy.Rate(hz);
     # LOAD WEIGHT
     weight_name = sys.argv[2]
-    model = Generator(num_waypoint, num_step)
+    model = Generator(num_waypoint, 0, num_step)
     serializers.load_npz(weight_name, model)
     t_navi = time.time()
     t_com = time.time()
