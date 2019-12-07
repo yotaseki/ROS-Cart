@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 import sys, os, glob
 import data
+import coordinate
 from model import oplus
 import xp_settings
 import time
+import train_tools
 xp_settings.set_gpu(-1)
 xp = xp_settings.xp
 
@@ -22,13 +24,13 @@ def onClick(e):
     replot_fig2(y_pad[idx],x[idx])
     replot_fig3(pos_t[idx])
     plt.draw()
-    print('frame:',idx)
-    print('pos_t:',pos_t[idx])
-    print('** input **')
-    print(x[idx])
-    print('** output **')
-    print(y_pad[idx])
-    print('')
+    #print('frame:',idx)
+    #print('pos_t:',pos_t[idx])
+    #print('** input **')
+    #print(x[idx])
+    #print('** output **')
+    #print(y_pad[idx])
+    #print('')
     return 0
 
 def onPressed(e):
@@ -106,6 +108,14 @@ def delta_arrow(x,y,rad,delta=0.01):
     V = y - Y
     return X,Y,U,V
 
+def get_close_points(path, pos):
+    ret = []
+    for i in range(len(pos)):
+        idx = data.get_nearly_point_idx(path, pos[i])
+        ret.append(path[idx])
+    ret = np.array(ret)
+    return ret
+
 if __name__=='__main__':
 # read log
     dir_log = sys.argv[1]
@@ -116,8 +126,35 @@ if __name__=='__main__':
     log_w = dir_log+'/log_w.csv'
     log_path = dir_log+'/log_path.csv'
     path = data.read_path_csv(log_path)
+    path = coordinate.globalpos_to_localpos(path, path[0])
     pos = data.read_path_csv(log_pos)
+    pos = coordinate.globalpos_to_localpos(pos, pos[0])
     pos_t = data.read_path_csv(log_pos_t)
+    pos_t = coordinate.globalpos_to_localpos(pos_t, pos_t[0])
+    p_cls_t = get_close_points(path, pos_t)
+    p_cls = get_close_points(path, pos)
+    Loss_t = .0
+    Loss_t_max = .0
+    Loss_odom = .0
+    Loss_odom_max = .0
+    for i in range(len(pos_t)):
+        e = train_tools.error_squares(p_cls_t[i], pos_t[i])
+        Loss_t = Loss_t + e
+        if e.data > Loss_t_max:
+            Loss_t_max = e.data
+    for i in range(len(pos)):
+        e = train_tools.error_squares(p_cls[i], pos[i])
+        Loss_odom = Loss_odom + e
+        if e.data > Loss_odom_max:
+            Loss_odom_max = e.data
+    print('sum_error(ModelState),', Loss_t.data)
+    print('max_error(ModelState),', Loss_t_max)
+    print('sum_error(Odom),', Loss_odom.data)
+    print('max_error(Odom),', Loss_odom_max)
+    print('NumStep,',len(pos))
+    space = 2.
+    x_range = [min(pos_t[:,0])-space,max(pos_t[:,0])+space]
+    y_range = [min(pos_t[:,1])-space,max(pos_t[:,1])+space]
     x = pd.read_csv(log_x,header=None).values
     x = np.reshape(x,(len(x),10,2))
     v = pd.read_csv(log_v,header=None).values
@@ -136,6 +173,8 @@ if __name__=='__main__':
     ax1.plot(pos[:,0],pos[:,1],c='green' ,linewidth=2)
     ax1.plot(pos_t[:,0],pos_t[:,1],c='blue' ,linewidth=2)
     p1_pos, = ax1.plot(0.0, 0.0,'o',c='black',markersize=10)
+    ax1.set_xlim(x_range)
+    ax1.set_ylim(y_range)
     #p1_mouse, = ax1.plot(0.0, 0.0,'o',markersize=10)
     #ln1_mouse, = ax1.plot([],[])
     #ax1.set_position([0.1,0.2,0.3,0.4])

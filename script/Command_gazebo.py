@@ -39,8 +39,11 @@ def main():
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
     navigator = Navigator(options.DATA_NUM_STEP,options.DATA_V_STEP)
-    navigator.read_path_csv(path_name, scale=1.0)
     rate = rospy.Rate(options.DATA_HZ);
+    for i in range(20):
+        controller.command_vel(1.0,0.0)
+        rate.sleep()
+    navigator.read_path_csv(path_name, scale=1.0)
     # LOAD WEIGHT
     weight_name = sys.argv[2]
     model = Generator(options.DATA_NUM_WAYPOINTS, options.DATA_NUM_PREVIOUS_U, options.DATA_NUM_STEP)
@@ -112,6 +115,7 @@ def main():
             #print('|- Controller time: ',t_com,'[sec]')
         if CAPTURE_LOG:
             dir_log = 'GazeboLog_'+os.path.basename(weight_name)+'_'+os.path.basename(path_name)
+            print('SaveTo:', dir_log)
             os.mkdir(dir_log)
             list_to_csv(log_pos,dir_log+'/log_pos.csv')
             list_to_csv(log_pos_t,dir_log+'/log_pos_t.csv')
@@ -155,6 +159,9 @@ class Navigator:
     def read_path_csv(self, filename, scale=1.0):
         self.path = data.read_path_csv(filename)
         self.path = self.path * scale
+        selfpos = self.get_position3D(self.selfpose_t)
+        print('robot at, ', selfpos)
+        self.path = coordinate.localpos_to_globalpos(self.path, selfpos)
         disp_interbal = int(len(self.path)/100)
         self.path_nav_msg = self.xparray_to_nav_msgs(self.path[::disp_interbal,0:2])
 
@@ -219,7 +226,7 @@ class Navigator:
 
     def update_selfpose(self, odom):
         self.selfpose = odom.pose.pose
-        self.ready = True
+        #self.ready = True
 
     def update_selfpose_t(self,states):
         idx  = states.name.index('mobile_base')
