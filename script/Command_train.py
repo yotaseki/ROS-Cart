@@ -21,7 +21,6 @@ import data
 import coordinate
 import train_tools
 from model import Oplus, Generator, calc_oplus
-WRITE_DATA = False
 settings.set_gpu(0)
 xp = settings.xp
 
@@ -29,144 +28,109 @@ def main():
     print('WEIGHT:',sys.argv[1])
     # Params
     options.init()
-    options.DATA_SIZE = 1000
-    options.DATA_NUM_WAYPOINTS = 10
-    options.DATA_NUM_STEP = options.DATA_NUM_WAYPOINTS
-    options.DATA_HZ = 10
-    options.DATA_V_STEP = 0.5 / options.DATA_HZ # [m/step]
-    options.DATA_MAX_V_STEP = 1.0 / options.DATA_HZ # [m/step]
-    options.DATA_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
-    options.DATA_MAX_W_STEP = xp.pi * 0.5 / options.DATA_HZ # [rad/step]
-    options.DATA_NUM_PREVIOUS_U = 1
-    options.DATA_RANGE_TRANSLATE = 0
-    options.DATA_RANGE_ROTATE = 0
-    v_sec = options.DATA_V_STEP*options.DATA_HZ
-    max_v = options.DATA_MAX_V_STEP*options.DATA_HZ
-    max_w = xp.pi * options.DATA_MAX_W_STEP*options.DATA_HZ
     # ROS Settings
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
     navigator = Navigator(options.DATA_NUM_STEP,options.DATA_V_STEP)
     rate = rospy.Rate(options.DATA_HZ);
+    rate.sleep()
     # LOAD WEIGHT
     model_name = sys.argv[1]
     model = Generator(options.DATA_NUM_WAYPOINTS, options.DATA_NUM_PREVIOUS_U, options.DATA_NUM_STEP)
     serializers.load_npz(model_name, model)
-    opt_name = sys.argv[2]
+    #opt_name = sys.argv[2]
     opt = optimizers.Adam()
     opt.setup(model)
-    serializers.load_npz(opt_name, opt)
+    #serializers.load_npz(opt_name, opt)
     if settings.gpu_index >= 0:
         cuda.cupy.cuda.Device(settings.gpu_index).use()
         model.to_gpu(settings.gpu_index)
-    t_navi = time.time()
-    t_com = time.time()
-    t_all = time.time()
-    if WRITE_DATA:
-        dir_log = 'DATA_'+os.path.basename(model_name)
-        os.mkdir(dir_log)
-    log_x = []
-    log_v = []
-    log_w = []
-    log_pos = []
+    options.DATA_SIZE = 1000
     X = train_tools.make_dataset()
     random.shuffle(X)
-    max_epoch = 10
+    max_epoch = 30
     iterate = 0
     AvgLoss=[]
-    l_ep = .0
+    avgloss_simu = .0
+    avgloss_oplus = .0
     replanning = True
-    du = xp.array([.0,.0],dtype=xp.float32)
     selfpos = navigator.get_position3D(navigator.selfpose_t)
+    v_wait = xp.ones((1,10), dtype=xp.float32) * options.DATA_V_STEP
+    w_wait = xp.zeros((1,10), dtype=xp.float32)
     try:
+        def Command(v, w, draw_path=True):
+            z = []
+            selfpos = navigator.get_position3D(navigator.selfpose_t)
+            selfpos_odom = navigator.get_position3D(navigator.selfpose)
+            z.append(selfpos)
+            v_sec = v * options.DATA_HZ
+            w_sec = w * options.DATA_HZ
+            if(draw_path==True):
+                x_gl = coordinate.localpos_to_globalpos(x_data,selfpos_odom)
+                msg = navigator.xparray_to_nav_msgs(x_gl[:,0:2])
+                navigator.display_path(msg)
+            for step in range(len(v[0])):
+                controller.command_vel(v_sec[0,step], w_sec[0,step])
+                rate.sleep()
+                selfpos = navigator.get_position3D(navigator.selfpose_t)
+                z.append(selfpos)
+            z = xp.array(z, dtype=xp.float32)
+            z = coordinate.globalpos_to_localpos(z[1:],z[0])
+            return z
         while not rospy.is_shutdown():
             t_all = time.time()
             if(navigator.ready):
                 t_navi= time.time()
-                if replanning == True:
-                    idx = iterate%options.DATA_SIZE
-                    x_data = xp.array(X[idx][:],dtype=xp.float32)
-                    x = xp.vstack((x_data[:,0:2],du))
-                    x = xp.ravel(x)
-                    x = xp.array([x],dtype=xp.float32)
-                    x = Variable(x)
-                    uv,uw = model(x)
-                    v_lim = options.DATA_MAX_V_STEP
-                    w_lim = options.DATA_MAX_W_STEP
-                    v = F.clip(uv,.0,v_lim)
-                    w = F.clip(uw,-w_lim,w_lim)
-                    pad = Variable(xp.zeros((1,options.DATA_NUM_STEP),dtype=xp.float32))
-                    u = F.stack((v,pad,w),axis=2)
-                    z_oplus = calc_oplus(u[0])
-                    #print('\nodom')
-                    #print(navigator.selfpos)
-                    #print('input[x,y]')
-                    #print(x)
-                    #print('output[v,w]')
-                    #print(uv.data)
-                    #print(uw.data)
-                    step = 0
-                    z_sim_gl = []
-                    replanning = False
-                    x_gl = coordinate.localpos_to_globalpos(X[idx],selfpos)
-                    msg = navigator.xparray_to_nav_msgs(x_gl[:,0:2])
-                t_navi= time.time() - t_navi
-                t_com = time.time()
-                com_v = v.data[0,step] * options.DATA_HZ
-                com_w = w.data[0,step] * options.DATA_HZ
-                #print('Command')
-                #print(v,w)
-                selfpos = navigator.get_position3D(navigator.selfpose_t)
-                controller.command_vel(com_v,com_w)
-                t_com = time.time() - t_com
-                z_sim_gl.append(selfpos)
-                step = step + 1
-                navigator.display_path(msg)
-                if step == options.DATA_NUM_STEP:
-                    z_sim_arr = xp.array(z_sim_gl,dtype=xp.float32)
-                    z_sim_arr = coordinate.globalpos_to_localpos(z_sim_arr[1:],z_sim_arr[0])
-                    z_sim = Variable(z_sim_arr)
-                    z_t = x_data
-                    sim_loss = train_tools.loss_function(z_sim,z_oplus)
-                    oplus_loss = train_tools.loss_function(z_oplus,z_t)
-                    loss = sim_loss + oplus_loss
-                    l_ep = l_ep + loss.data
-                    model.cleargrads()
-                    loss.backward()
-                    opt.update()
-                    if WRITE_DATA:
-                        log_x.append(x.data[0])
-                        log_v.append(y_v.data[0,:])
-                        log_w.append(y_w.data[0,:])
-                        log_pos.append(arr.flatten())
-                    print('iter: ',iterate, '  Loss:',loss.data)
-                    iterate = iterate + 1
-                    if((iterate%options.DATA_SIZE)==0):
-                        print('Epoch:',int(iterate/options.DATA_SIZE), '    AvgLoss:',l_ep/len(X))
-                        random.shuffle(X)
-                        AvgLoss.append(l_ep/len(X))
-                        l_ep = .0
-                    replanning = True
-                    if int(iterate/options.DATA_SIZE)==max_epoch:
-                        serializers.save_npz('Enhanced'+str(max_epoch)+'ep_'+os.path.basename(model_name), model)
-                        serializers.save_npz('Enhanced'+str(max_epoch)+'ep_'+os.path.basename(opt_name), opt)
-                        print('finished')
-                        print('AvgLoss = ',AvgLoss)
-                        break
-                #if(xp.sqrt(xp.sum(x.data[0,0:2]**2))) > waypoint_interval*10:
-                #    print('failed...')
-                #    break
-            rate.sleep()
+                idx = iterate%options.DATA_SIZE
+                x_data = xp.array(X[idx][:],dtype=xp.float32)
+                x = xp.ravel(x_data[:,0:2])
+                x = xp.array([x],dtype=xp.float32)
+                x = Variable(x)
+                uv,uw = model(x)
+                v_lim = options.DATA_MAX_V_STEP
+                w_lim = options.DATA_MAX_W_STEP
+                v = F.clip(uv,.0,v_lim)
+                w = F.clip(uw,-w_lim,w_lim)
+                #print('pose')
+                #print(navigator.selfpos)
+                #print('input[x,y]')
+                #print(x)
+                #print('output[v,w]')
+                #print(v.data)
+                #print(w.data)
+                pad = Variable(xp.zeros((1,options.DATA_NUM_STEP),dtype=xp.float32))
+                y = F.stack((v,pad,w),axis=2)
+                z_oplus = calc_oplus(y[0])
+                Command(v_wait, w_wait, draw_path=False)
+                z_simu = Command(v.data, w.data)
+                z_t = x_data
+                simu_loss = train_tools.loss_function(z_simu,z_oplus)
+                oplus_loss = train_tools.loss_function(z_oplus,z_t)
+                loss = simu_loss + oplus_loss
+                avgloss_oplus = avgloss_oplus + oplus_loss.data
+                avgloss_simu = avgloss_simu + simu_loss.data
+                model.cleargrads()
+                loss.backward()
+                opt.update()
+                print('iter: ',iterate, '  Loss(Oplus):',oplus_loss.data, ' Loss(Simu):',simu_loss.data)
+                iterate = iterate + 1
+                if((iterate%options.DATA_SIZE)==0):
+                    epoch = int(iterate/options.DATA_SIZE)
+                    print('Epoch:',epoch, '    AvgLoss(Oplus):',avgloss_oplus/len(X), '    AvgLoss(Simu)',avgloss_simu/len(X))
+                    random.shuffle(X)
+                    AvgLoss.append([avgloss_oplus/len(X), avgloss_simu/len(X)])
+                    avgloss_simu = .0
+                    avgloss_oplus = .0
+                    serializers.save_npz('Advanced'+str(epoch)+'ep_'+os.path.basename(model_name), model)
+                    serializers.save_npz('Advanced'+str(epoch)+'ep_'+os.path.basename(model_name), opt)
+                if int(iterate/options.DATA_SIZE)==max_epoch:
+                    print('finished')
+                    print('AvgLoss = ',AvgLoss)
+                    break
             t_all = time.time() - t_all
             #print('time: ',t_all,'[sec]')
             #print('|- Navigator time: ',t_navi,'[sec]')
             #print('|- Controller time: ',t_com,'[sec]')
-        if WRITE_DATA:
-            list_to_csv(log_pos,dir_log+'/log_pos.csv')
-            list_to_csv(log_x,dir_log+'/log_x.csv')
-            list_to_csv(log_v,dir_log+'/log_v.csv')
-            list_to_csv(log_w,dir_log+'/log_w.csv')
-        list_to_csv(AvgLoss,'average_loss.txt')
     except rospy.ROSInterruptException:
         sys.exit()
 
