@@ -71,7 +71,7 @@ def train_nes():
                 print('Error: inputs error {} != {}').format(t1,t2)
                 raise Exception
             self.R = 1
-            self.sigma = .01
+            self.sigma = .001
             self.p = cp.asarray(perturbation((self.R,2),sigma=self.sigma))
             v_up = v + self.p[:,0]
             v_down = v - self.p[:,0]
@@ -115,7 +115,7 @@ def train_nes():
     serializers.load_npz(argv[1],model)
     opt = optimizers.Adam()
     opt.setup(model)
-    serializers.load_npz(argv[2],opt)
+    #serializers.load_npz(argv[2],opt)
     if settings.gpu_index >= 0:
         cuda.cupy.cuda.Device(settings.gpu_index).use()
         model.to_gpu(settings.gpu_index)
@@ -127,13 +127,13 @@ def train_nes():
     v_wait = xp.ones((1,10), dtype=xp.float32) * options.DATA_V_STEP
     w_wait = xp.zeros((1,10), dtype=xp.float32)
     loss = .0
-    loss_epoch = []
+    log_dmesg = []
     #dirname = 'simNES_' + os.path.splitext(argv[1])[0]
     dirname = 'NES_' + os.path.dirname(argv[1])
     os.mkdir(dirname)
     try:
         while not rospy.is_shutdown():
-            idx = counter % options.DATA_SIZE
+            idx = itr % options.DATA_SIZE
             x_data = xp.array(X[idx][:],dtype=xp.float32)
             x = xp.ravel(x_data[:,0:2])
             x = xp.array([x],dtype=xp.float32)
@@ -152,15 +152,15 @@ def train_nes():
             opt.update()
             itr = itr + 1
             print('itr:', itr, ' D:',xp.sum(e.data))
-            if counter % options.DATA_SIZE == 0 and counter != 0:
+            if itr % options.DATA_SIZE == 0 and itr != 0:
                 epoch = epoch + 1
-                msg = '******Epoch:' +  str(epoch)
+                msg = '[Epoch]' +  str(epoch)
                 print(msg)
                 log_dmesg.append(msg)
-                msg = 'D_average:' + str(D_loss / options.DATA_SIZE)
+                msg = 'Loss(Avg):' + str(loss / options.DATA_SIZE)
                 print(msg)
                 log_dmesg.append(msg)
-                D_loss = .0
+                loss = .0
                 serializers.save_npz(dirname+'/'+dirname+'ep'+str(epoch)+'.model', model)
                 serializers.save_npz(dirname+'/'+dirname+'ep'+str(epoch)+'.state', opt)
                 str_ = '\n'.join(log_dmesg)
@@ -292,4 +292,5 @@ class Navigator:
 
 
 if __name__=='__main__':
+    argv = sys.argv
     main()
