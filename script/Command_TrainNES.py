@@ -1,6 +1,7 @@
 import rospy
 import chainer
 from chainer import Function, FunctionNode, Link, Chain, ChainList, Variable, optimizers, iterators
+from chainer import function_node
 import chainer.functions as F
 import chainer.links as L
 from chainer import cuda
