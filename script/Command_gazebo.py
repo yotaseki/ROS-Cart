@@ -23,24 +23,14 @@ def main():
     print('WEIGHT:',sys.argv[2])
     # Params
     options.init()
-    options.DATA_SIZE = 1000
-    options.DATA_NUM_WAYPOINTS = 10
-    options.DATA_NUM_STEP = options.DATA_NUM_WAYPOINTS
-    options.DATA_HZ = 10
-    options.DATA_V_STEP = 1.0 / options.DATA_HZ # [m/step]
-    options.DATA_MAX_V_STEP = 1.0 / options.DATA_HZ # [m/step]
-    options.DATA_W_STEP = (xp.pi/6) / options.DATA_HZ # [rad/step]
-    options.DATA_MAX_W_STEP = (xp.pi/6)/ options.DATA_HZ # [rad/step]
-    options.DATA_NUM_PREVIOUS_U = 0
-    options.DATA_RANGE_TRANSLATE = 0
-    options.DATA_RANGE_ROTATE = 0
     # ROS Settings
     path_name = sys.argv[1]
     rospy.init_node('CartController', anonymous=True)
     controller = Controller()
     navigator = Navigator(options.DATA_NUM_STEP,options.DATA_V_STEP)
     rate = rospy.Rate(options.DATA_HZ);
-    for i in range(20):
+    rate.sleep()
+    for i in range(30):
         controller.command_vel(1.0,0.0)
         rate.sleep()
     navigator.read_path_csv(path_name, scale=1.0)
