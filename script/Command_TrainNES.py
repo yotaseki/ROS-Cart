@@ -69,7 +69,7 @@ def train_nes():
         def forward_gpu(self, inputs):
             v, w = inputs
             if len(v.data)!=len(w.data):
-                print('Error: inputs error {} != {}').format(t1,t2)
+                print('Error: inputs error {} != {}').format(len(v.data),len(w.data))
                 raise Exception
             self.R = 1
             self.sigma = .001
@@ -90,8 +90,8 @@ def train_nes():
         def backward(self, inputs, grad_outputs):
             gy, = grad_outputs
             v, w = self.get_retained_inputs()
-            v = np.array(v.data,dtype=cp.float32)
-            w = np.array(w.data,dtype=cp.float32)
+            v = cp.array(v.data,dtype=cp.float32)
+            w = cp.array(w.data,dtype=cp.float32)
             z_up, z_down = self.get_retained_outputs()[0]
             z_up = cp.array(z_up.data, dtype=cp.float32)
             z_down = cp.array(z_down.data, dtype=cp.float32)
@@ -145,7 +145,7 @@ def train_nes():
             w_lim = options.DATA_MAX_W_STEP
             v = F.clip(uv,.0,v_lim)
             w = F.clip(uw,-w_lim,w_lim)
-            z = simnes(v,w)
+            z = sim_nes(v,w)
             mz = (z[0]+z[1]) * 0.5
             e = Error(x_data, mz)
             model.cleargrads()
