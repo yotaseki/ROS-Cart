@@ -36,17 +36,23 @@ def train_nes():
         t = xt * w
         p = x * w
         e = F.sum((t-p)**2)
+
+        beta = 10
+        t_cost = cp.ones(e.data.shape, dtype=cp.float32)
+        t_cost[-1] = beta * t_cost[-1]
+        e = e * t_cost
         return e
     def Command(v, w, draw_path=True):
         z = []
-        selfpos = navigator.get_position3D(navigator.selfpose_t)
-        z.append(selfpos)
         v_sec = v * options.DATA_HZ
         w_sec = w * options.DATA_HZ
+        selfpos_odom = navigator.get_position3D(navigator.selfpose)
         if(draw_path==True):
-            x_gl = coordinate.localpos_to_globalpos(x_data,selfpos)
+            x_gl = coordinate.localpos_to_globalpos(x_data,selfpos_odom)
             msg = navigator.xparray_to_nav_msgs(x_gl[:,0:2])
             navigator.display_path(msg)
+        selfpos = navigator.get_position3D(navigator.selfpose_t)
+        z.append(selfpos)
         for step in range(len(v[0])):
             controller.command_vel(v_sec[0,step], w_sec[0,step])
             rate.sleep()
@@ -68,16 +74,26 @@ def train_nes():
     class SimulatorNES(function_node.FunctionNode):
         def forward_gpu(self, inputs):
             v, w = inputs
-            if len(v.data)!=len(w.data):
-                print('Error: inputs error {} != {}').format(len(v.data),len(w.data))
+            if len(v)!=len(w):
+                print('Error: inputs error {} != {}').format(len(v),len(w))
                 raise Exception
             self.R = 1
-            self.sigma = .001
+            self.sigma = .01
             self.p = cp.asarray(perturbation((self.R,2),sigma=self.sigma))
             v_up = v + self.p[:,0]
             v_down = v - self.p[:,0]
             w_up = w + self.p[:,1]
             w_down = w - self.p[:,1]
+            if w_up.any() > options.DATA_MAX_W_STEP:
+                over = cp.max(w_up) - options.DATA_MAX_W_STEP
+                self.p[:,1] = self.p[:,1] - over
+                w_up = w + self.p[:,1]
+                w_down = w - self.p[:,1]
+            elif w_down.any() < -options.DATA_MAX_W_STEP:
+                over = cp.min(w_down) + options.DATA_MAX_W_STEP
+                self.p[:,1] = self.p[:,1] + over
+                w_up = w + self.p[:,1]
+                w_down = w - self.p[:,1]
             # send command
             Command(v_wait, w_wait, draw_path=False)
             z_up = Command(v_up, w_up)
@@ -122,7 +138,7 @@ def train_nes():
         model.to_gpu(settings.gpu_index)
     X = train_tools.make_dataset()
     random.shuffle(X)
-    max_epoch = 10
+    max_epoch = 100
     epoch = 0
     itr = 0
     v_wait = xp.ones((1,10), dtype=xp.float32) * options.DATA_V_STEP
@@ -140,16 +156,17 @@ def train_nes():
             x = xp.array([x],dtype=xp.float32)
             x = Variable(x)
             selfpos = navigator.get_position3D(navigator.selfpose_t)
-            uv,uw = model(x)
-            v_lim = options.DATA_MAX_V_STEP
-            w_lim = options.DATA_MAX_W_STEP
-            v = F.clip(uv,.0,v_lim)
-            w = F.clip(uw,-w_lim,w_lim)
+            v,w = model(x)
+            #v_lim = options.DATA_MAX_V_STEP
+            #w_lim = options.DATA_MAX_W_STEP
+            #cv = F.clip(v,.0,v_lim)
+            #cw = F.clip(w,-w_lim,w_lim)
             z = sim_nes(v,w)
             mz = (z[0]+z[1]) * 0.5
             e = Error(x_data, mz)
             model.cleargrads()
             e.backward()
+            loss = loss + e.data
             opt.update()
             itr = itr + 1
             print('itr:', itr, ' D:',xp.sum(e.data))
